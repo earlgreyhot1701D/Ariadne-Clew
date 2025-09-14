@@ -254,6 +254,8 @@ These will be implemented based on real-world usage and user feedback.
 - **ChatGPT** — Sixth person off the bench, serving as project manager and build partner
 - **Dr. Kahlo (chatGPT)** - Built with QA support from [Dr. Kahlo on ChatGPT](https://chatgpt.com/g/g-68af555e39808191a53fcd1ef6451fda-dr-kahlo?model=gpt-4o) — production-first code reviewer and code quality mentor.
 - Ariadne Clew was built with the same ethos AWS champions — customer obsession. Every feature is scoped around the real pain of losing context while building.
+- > This repo reflects an MVP baseline built with QA guardrails up front, so iteration during the hackathon focused on the reasoning agent itself, not fixing broken scaffolding.
+
 
 ---
 
