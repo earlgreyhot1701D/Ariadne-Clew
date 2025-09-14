@@ -1,0 +1,9 @@
+# IAM Policies for Lambda
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {"Effect": "Allow", "Action": ["s3:GetObject"], "Resource": "arn:aws:s3:::ariadne-session-logs/*"},
+    {"Effect": "Allow", "Action": ["bedrock:InvokeModel"], "Resource": "*"},
+    {"Effect": "Allow", "Action": ["dynamodb:PutItem", "dynamodb:Query"], "Resource": "arn:aws:dynamodb:*:*:table/AriadneItems"}
+  ]
+}

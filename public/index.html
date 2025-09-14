@@ -1,0 +1,68 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ariadne Clew</title>
+  <meta name="description" content="Fetch and display session recap data for Ariadne Clew." />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="container">
+    <h1>Ariadne Clew</h1>
+    <p class="subtitle">Guiding your builds with structured clarity.</p>
+  </header>
+
+  <main class="container" role="main">
+    <form id="recapForm" novalidate aria-describedby="formHint" onsubmit="event.preventDefault(); fetchRecap();">
+      <label for="sessionId">Session ID</label>
+      <input id="sessionId" name="sessionId" type="text" inputmode="latin" autocomplete="off" required aria-required="true"
+        placeholder="e.g., clew-2025-09-14-thread42" />
+      <p id="formHint" class="hint">Enter your session identifier and select a view.</p>
+
+      <fieldset>
+        <legend>View</legend>
+        <label class="radio">
+          <input type="radio" name="view" value="summary" checked />
+          Summary
+        </label>
+        <label class="radio">
+          <input type="radio" name="view" value="raw" />
+          Raw JSON
+        </label>
+      </fieldset>
+
+      <div class="actions">
+        <button id="fetchBtn" type="submit">Fetch recap</button>
+        <button id="copyBtn" type="button" onclick="copyOutput()" aria-label="Copy output to clipboard">Copy</button>
+      </div>
+    </form>
+
+    <hr />
+
+    <form onsubmit="event.preventDefault(); readUploadedFile();">
+      <fieldset>
+        <legend>Upload and classify log file</legend>
+        <label for="logFileInput">Upload Log File:</label>
+        <input type="file" id="logFileInput" accept=".txt,.json" required />
+        <button type="submit" aria-label="Upload log file">Classify Upload</button>
+      </fieldset>
+    </form>
+
+    <section aria-live="polite" aria-busy="false" id="statusRegion" class="sr-only"></section>
+
+    <section class="panel" aria-labelledby="outHeading">
+      <h2 id="outHeading">Output</h2>
+      <pre id="recapOutput" class="output" tabindex="0">Recap will appear here...</pre>
+    </section>
+  </main>
+
+  <footer class="container">
+    <small>Built for builders. Customer obsession means clear handoffs and resilient UX.</small>
+  </footer>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
