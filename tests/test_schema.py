@@ -32,7 +32,7 @@ def test_missing_final_raises():
 def test_final_not_dict():
     invalid = VALID_RECAP.copy()
     invalid["final"] = "not a dict"
-    with pytest.raises(ValueError, match="Final must be a dict"):
+    with pytest.raises(ValueError, match="Final snippet must be a dict"):
         validate_recap_output(invalid)
 
 def test_rejected_not_list():
