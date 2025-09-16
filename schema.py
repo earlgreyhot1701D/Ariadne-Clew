@@ -2,60 +2,43 @@
 """
 Shared schema definitions and validation helpers for Ariadne Agent.
 """
+from typing import Dict, List, Any
 
-from typing import TypedDict, List, Literal
+REQUIRED_SNIPPET_FIELDS = ["version", "snippet_id", "content", "diff_summary"]
 
-# === Categories ===
-Category = Literal["AHA", "MVP_CHANGE", "SCOPE_CREEP", "README_NOTE", "POST_MVP_IDEA"]
+def _validate_snippet(snippet: Dict[str, Any], context: str) -> None:
+    if not isinstance(snippet, dict):
+        raise ValueError(f"{context} must be a dict")
+    for field in REQUIRED_SNIPPET_FIELDS:
+        if field not in snippet:
+            raise ValueError(f"{context} missing required field: {field}")
 
+def validate_recap_output(data: Dict[str, Any]) -> bool:
+    """
+    Validates the recap output structure from diff_code_blocks.
 
-# === Structured Claude Output ===
-class ClassifiedItem(TypedDict):
-    category: Category
-    text: str
+    Args:
+        data (dict): Output dictionary expected to match RecapOutput format.
 
+    Returns:
+        bool: True if structure is valid, raises ValueError otherwise.
+    """
+    if not isinstance(data, dict):
+        raise ValueError("Recap data must be a dictionary")
 
-class ClaudeResult(TypedDict):
-    session_id: str
-    timestamp: str
-    aha_moments: List[str]
-    mvp_changes: List[str]
-    scope_creep: List[str]
-    readme_notes: List[str]
-    post_mvp_ideas: List[str]
-    summary: str
-    quality_flags: List[str]
-
-
-# === Validators ===
-def validate_claude_result(data: dict) -> bool:
-    required_keys = [
-        "session_id",
-        "timestamp",
-        "aha_moments",
-        "mvp_changes",
-        "scope_creep",
-        "readme_notes",
-        "post_mvp_ideas",
-        "summary",
-        "quality_flags",
-    ]
-    for key in required_keys:
+    for key in ["final", "rejected", "text_summary"]:
         if key not in data:
-            raise ValueError(f"Missing required field: {key}")
+            raise ValueError(f"Missing recap field: {key}")
 
-    if not isinstance(data["session_id"], str) or not data["session_id"]:
-        raise ValueError("Invalid session_id")
-    if not isinstance(data["timestamp"], str):
-        raise ValueError("Invalid timestamp")
-    for field in [
-        "aha_moments",
-        "mvp_changes",
-        "scope_creep",
-        "readme_notes",
-        "post_mvp_ideas",
-        "quality_flags",
-    ]:
-        if not isinstance(data[field], list):
-            raise ValueError(f"Field {field} must be a list")
+    _validate_snippet(data["final"], "Final snippet")
+
+    if not isinstance(data["rejected"], list):
+        raise ValueError("Rejected must be a list")
+
+    for idx, snippet in enumerate(data["rejected"]):
+        _validate_snippet(snippet, f"Rejected snippet at index {idx}")
+
+    if not isinstance(data["text_summary"], str):
+        raise ValueError("text_summary must be a string")
+
     return True
