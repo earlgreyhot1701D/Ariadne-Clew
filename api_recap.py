@@ -3,7 +3,7 @@ API endpoint to generate a recap from chat logs using classification and diffing
 """
 
 from flask import Flask, request, jsonify
-from lambda_classifier import classify_blocks
+from lambda_classifier import classify_blocks, validate_input_length
 from diffcheck import diff_code_blocks
 from schema import validate_recap_output
 from pydantic import BaseModel, ValidationError
@@ -39,6 +39,8 @@ def create_recap_from_log(chat_log: str) -> dict:
     """
     if not chat_log or not isinstance(chat_log, str):
         raise ValueError("Invalid or missing 'chat_log' (must be a non-empty string).")
+
+    validate_input_length(chat_log)  # 🚨 Check input size
 
     logger.info("Classifying chat log into blocks.")
     blocks = classify_blocks(chat_log)
@@ -92,4 +94,3 @@ def generate_recap():
 # Entrypoint
 if __name__ == '__main__':
     app.run(debug=True)
-

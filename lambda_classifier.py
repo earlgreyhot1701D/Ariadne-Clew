@@ -9,6 +9,20 @@ Block = Dict[str, str]
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+MAX_CHARS = 100_000  # ~20k tokens max
+
+def validate_input_length(text: str) -> None:
+    """
+    Ensures input is within safe token length for MVP.
+    Raises ValueError if limit exceeded.
+    """
+    if len(text) > MAX_CHARS:
+        raise ValueError(
+            f"Input too long ({len(text)} chars). "
+            f"Limit is {MAX_CHARS:,} characters (~20k tokens). "
+            "Please trim or split your file before analysis."
+        )
+
 def classify_blocks(chat_log: Union[str, List[str]]) -> List[Block]:
     """
     Splits a chat log into blocks and classifies each as 'code' or 'text'.
