@@ -8,8 +8,8 @@ It exists to prevent scope creep and keep development focused on delivering a wo
 ## ✅ MVP Definition
 
 **Core Pipeline**
-- Input → filters → classifier → code_handler (AST) → diff → recap_formatter → memory
-- Output = dual recap (JSON + human-readable)
+- Input → pastebox UI (`index.html`) → filters → classifier → code_handler (AST) → diff → recap_formatter → memory
+- Output = dual recap (JSON + human-readable) rendered in-browser (`#humanOutput` + `#jsonOutput`)
 
 **Guardrails**
 - Replace `exec()` with AST parse
@@ -31,7 +31,7 @@ It exists to prevent scope creep and keep development focused on delivering a wo
 - AgentCore Code Interpreter enabled
 - Guardrails attached to agent
 - S3 → Lambda → API Gateway demo flow
-- Frontend: browser upload → recap shown + JSON download
+- Frontend: pastebox upload (textarea in `index.html`) → recap shown in browser (human-readable panel + raw JSON panel)
 
 ---
 
@@ -40,7 +40,7 @@ It exists to prevent scope creep and keep development focused on delivering a wo
 These items are deferred until after the hackathon. They should **not** be built before October 20.
 
 - Classifier prompt exemplars (only single baseline prompt used in MVP)
-- Side-by-side frontend JSON + human-readable view
+- Advanced frontend polish (styled split view, toggles, downloads). MVP shows basic dual outputs only.
 - Reasoning trace logs (AC_TRACE)
 - AgentCore Memory integration beyond minimal dict fallback
 - VS Code extension, GitHub enrichment, semantic search, team collaboration
@@ -51,7 +51,7 @@ These items are deferred until after the hackathon. They should **not** be built
 ## 🔮 Post-MVP Roadmap Notes
 
 - **Classifier Prompt Exemplars**: Add to improve classification robustness.
-- **Frontend Display**: Future versions may show dual output (human + JSON side by side).
+- **Frontend Display**: Future versions may style dual output with tabs/split view.
 - **Trace Logs (AC_TRACE)**: Implemented but off by default; highlight later as a transparency feature.
 - **Memory Layer**: Switch from local dict fallback to AgentCore Memory for true cross-session persistence.
 - **Expanded Testing**: Move from smoke/unit tests to full coverage suite across all modules.
