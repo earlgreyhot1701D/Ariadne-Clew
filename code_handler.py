@@ -5,9 +5,10 @@ in chat transcripts for Ariadne Clew.
 """
 
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict
 import difflib
 import uuid
+import ast
 
 # Optional Bedrock AgentCore support
 try:
@@ -21,17 +22,18 @@ except ImportError as e:
 
 
 def extract_code_blocks(text: str) -> List[str]:
-    """
-    Detect fenced or inline code blocks in chat text.
-    Currently returns one dummy block for dev purposes.
-    """
-    return [text.strip()] if "```" in text else []
+    """Detect fenced or inline code blocks in chat text."""
+    blocks = []
+    if text.count("```") % 2 != 0:
+        raise ValueError("Unmatched code fence detected.")
+    parts = text.split("```")
+    for i in range(1, len(parts), 2):
+        blocks.append(parts[i].strip())
+    return blocks
 
 
 def version_snippets(snippets: List[str]) -> List[Dict]:
-    """
-    Assign IDs and version numbers to snippets, and generate diffs between versions.
-    """
+    """Assign IDs and version numbers to snippets, and generate diffs between versions."""
     results = []
     for i, snippet in enumerate(snippets):
         diff_summary = ""
@@ -53,14 +55,12 @@ def version_snippets(snippets: List[str]) -> List[Dict]:
 
 
 def validate_snippet(snippet: str) -> Dict:
-    """
-    Validate a code snippet using Bedrock AgentCore Code Interpreter (mocked for now).
-    """
+    """Validate a Python code snippet safely using AST parsing."""
     try:
-        exec(snippet)  # Simulated validation step
+        ast.parse(snippet)
         return {
             "status": "valid",
-            "output": "Executed successfully.",
+            "output": "Parsed successfully.",
             "error": ""
         }
     except SyntaxError as e:
@@ -77,14 +77,12 @@ def validate_snippet(snippet: str) -> Dict:
     except Exception as e:
         return {
             "status": "invalid",
-            "error": f"Runtime error: {str(e)}"
+            "error": str(e)
         }
 
 
 def reconcile_intent(snippet_data: Dict, user_text: str) -> Dict:
-    """
-    Reconcile validation result with user intent inferred from conversation.
-    """
+    """Reconcile validation result with user intent inferred from conversation."""
     if "final" in user_text.lower():
         reconciliation = "final accepted"
     elif "maybe" in user_text.lower():
@@ -102,9 +100,7 @@ def reconcile_intent(snippet_data: Dict, user_text: str) -> Dict:
 
 
 def summarize_session(snippet_results: List[Dict]) -> Dict:
-    """
-    Generate a structured recap for the session.
-    """
+    """Generate a structured recap for the session."""
     final = None
     for s in reversed(snippet_results):
         if s.get("reconciliation") == "final accepted":
@@ -115,4 +111,3 @@ def summarize_session(snippet_results: List[Dict]) -> Dict:
         "final": final or {},
         "all_snippets": snippet_results
     }
-

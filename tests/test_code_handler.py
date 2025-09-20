@@ -1,4 +1,3 @@
-
 import pytest
 from code_handler import extract_code_blocks, version_snippets, validate_snippet
 
@@ -50,3 +49,8 @@ def test_validate_snippet_partial():
     result = validate_snippet("x =")
     assert result["status"] == "partial"
     assert "incomplete" in result["error"]
+
+def test_validate_snippet_invalid():
+    result = validate_snippet("def broken(:)")
+    assert result["status"] == "invalid"
+    assert "Syntax error" in result["error"]
