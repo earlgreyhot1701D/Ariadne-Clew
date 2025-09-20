@@ -1,0 +1,72 @@
+# 🧶 Ariadne Clew – MVP Roadmap (Hackathon Lock)
+
+This file hardcodes the MVP scope for the AWS Agent Hackathon.
+It exists to prevent scope creep and keep development focused on delivering a working, reproducible, well-architected demo by **October 20, 2025**.
+
+---
+
+## ✅ MVP Definition
+
+**Core Pipeline**
+- Input → filters → classifier → code_handler (AST) → diff → recap_formatter → memory
+- Output = dual recap (JSON + human-readable)
+
+**Guardrails**
+- Replace `exec()` with AST parse
+- Input length guard (100,000 chars)
+- Deny terms: `password`, `api_key`, `rm -rf /`, `BEGIN RSA PRIVATE KEY`
+- PII scrub (emails + phone numbers)
+- Schema enforcement with `extra="forbid"`
+
+**Docs & Logging**
+- JSON logging with `request_id` (no raw transcripts)
+- Minimal unit tests (smoke coverage only) included in MVP
+- Full coverage test suite explicitly post-MVP
+- README.md updated to show AWS integration + safety
+- PRE_PROD_FIXES.md kept current
+- docs/model_eval.md with Claude vs Nova quick table
+
+**AWS Integration**
+- Bedrock model (Claude Sonnet or Nova)
+- AgentCore Code Interpreter enabled
+- Guardrails attached to agent
+- S3 → Lambda → API Gateway demo flow
+- Frontend: browser upload → recap shown + JSON download
+
+---
+
+## 🚫 Explicitly Out of MVP
+
+These items are deferred until after the hackathon. They should **not** be built before October 20.
+
+- Classifier prompt exemplars (only single baseline prompt used in MVP)
+- Side-by-side frontend JSON + human-readable view
+- Reasoning trace logs (AC_TRACE)
+- AgentCore Memory integration beyond minimal dict fallback
+- VS Code extension, GitHub enrichment, semantic search, team collaboration
+- Full coverage unit test suite
+
+---
+
+## 🔮 Post-MVP Roadmap Notes
+
+- **Classifier Prompt Exemplars**: Add to improve classification robustness.
+- **Frontend Display**: Future versions may show dual output (human + JSON side by side).
+- **Trace Logs (AC_TRACE)**: Implemented but off by default; highlight later as a transparency feature.
+- **Memory Layer**: Switch from local dict fallback to AgentCore Memory for true cross-session persistence.
+- **Expanded Testing**: Move from smoke/unit tests to full coverage suite across all modules.
+
+---
+
+## 🏁 Hackathon Delivery Criteria
+
+- End-to-end pipeline runs from transcript to recap in the browser
+- No unsafe code execution
+- Inputs >100k chars rejected
+- Guardrails scrub PII and deny dangerous terms
+- Schema validates every recap
+- Judges see dual output: structured JSON + scannable builder recap
+
+---
+
+*This file is the single source of truth for MVP scope. Anything outside of it is post-hackathon work.*
