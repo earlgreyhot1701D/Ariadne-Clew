@@ -10,6 +10,8 @@ It exists to prevent scope creep and keep development focused on delivering a wo
 **Core Pipeline**
 - Input → pastebox UI (`index.html`) → filters → classifier → code_handler (AST) → diff → recap_formatter → memory
 - Output = dual recap (JSON + human-readable) rendered in-browser (`#humanOutput` + `#jsonOutput`)
+- UI = minimal but polished pastebox: labeled input, single submit button,
+and dual output panels (human-readable + raw JSON).
 
 **Guardrails**
 - Replace `exec()` with AST parse
@@ -40,7 +42,7 @@ It exists to prevent scope creep and keep development focused on delivering a wo
 These items are deferred until after the hackathon. They should **not** be built before October 20.
 
 - Classifier prompt exemplars (only single baseline prompt used in MVP)
-- Advanced frontend polish (styled split view, toggles, downloads). MVP shows basic dual outputs only.
+- Advanced frontend polish (animations, styled split view, downloads). MVP requires only clean layout and clear labeling.
 - Reasoning trace logs (AC_TRACE)
 - AgentCore Memory integration beyond minimal dict fallback
 - VS Code extension, GitHub enrichment, semantic search, team collaboration
