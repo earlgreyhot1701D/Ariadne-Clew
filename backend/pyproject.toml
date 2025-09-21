@@ -1,0 +1,13 @@
+
+[tool.poetry]
+name = "ariadne-backend"
+version = "0.1.0"
+description = "Backend for Ariadne Clew Hackathon project"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+flask = "*"
+flask-cors = "*"
+
+[tool.poetry.dev-dependencies]
+pytest = "*"
