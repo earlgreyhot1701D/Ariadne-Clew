@@ -1,68 +1,54 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ariadne Clew</title>
-  <meta name="description" content="Fetch and display session recap data for Ariadne Clew." />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="style.css" />
+  <title>Ariadne Clew Recap</title>
+  <link rel="stylesheet" href="styles/style.css" />
+  <link rel="stylesheet" href="styles/theme.css" />
+  <link rel="stylesheet" href="styles/responsive.css" />
 </head>
 <body>
-  <header class="container">
-    <h1>Ariadne Clew</h1>
-    <p class="subtitle">Guiding your builds with structured clarity.</p>
-  </header>
+  <div class="container">
+    <header>
+      <h1>Ariadne Clew</h1>
+      <p class="subtitle">Session recap generator</p>
+    </header>
 
-  <main class="container" role="main">
-    <form id="recapForm" novalidate aria-describedby="formHint" onsubmit="event.preventDefault(); fetchRecap();">
-      <label for="sessionId">Session ID</label>
-      <input id="sessionId" name="sessionId" type="text" inputmode="latin" autocomplete="off" required aria-required="true"
-        placeholder="e.g., clew-2025-09-14-thread42" />
-      <p id="formHint" class="hint">Enter your session identifier and select a view.</p>
-
-      <fieldset>
-        <legend>View</legend>
-        <label class="radio">
-          <input type="radio" name="view" value="summary" checked />
-          Summary
-        </label>
-        <label class="radio">
-          <input type="radio" name="view" value="raw" />
-          Raw JSON
-        </label>
-      </fieldset>
+    <form id="recap-form">
+      <label for="session-id">Session ID</label>
+      <input type="text" id="session-id" required />
+      <div class="hint">Enter your session ID or upload a JSON file below</div>
 
       <div class="actions">
-        <button id="fetchBtn" type="submit">Fetch recap</button>
-        <button id="copyBtn" type="button" onclick="copyOutput()" aria-label="Copy output to clipboard">Copy</button>
+        <button type="submit">Get Recap</button>
+        <button type="button" id="copy-btn">Copy Recap</button>
+        <button type="button" id="export-md">Export Markdown</button>
+        <input type="file" id="file-upload" accept="application/json" />
       </div>
+
+      <div id="drop-zone">Drag and drop JSON file here</div>
     </form>
 
-    <hr />
+    <div id="status" role="status" aria-live="polite"></div>
+    <div id="recap-output" class="panel output"></div>
 
-    <form onsubmit="event.preventDefault(); readUploadedFile();">
-      <fieldset>
-        <legend>Upload and classify log file</legend>
-        <label for="logFileInput">Upload Log File:</label>
-        <input type="file" id="logFileInput" accept=".txt,.json" required />
-        <button type="submit" aria-label="Upload log file">Classify Upload</button>
-      </fieldset>
-    </form>
+    <footer>
+      <label class="switch">
+        <input type="checkbox" id="theme-toggle" />
+        <span class="slider"></span>
+        <span>Toggle theme</span>
+      </label>
+      <p>&copy; Hackathon Team</p>
+    </footer>
+  </div>
 
-    <section aria-live="polite" aria-busy="false" id="statusRegion" class="sr-only"></section>
-
-    <section class="panel" aria-labelledby="outHeading">
-      <h2 id="outHeading">Output</h2>
-      <pre id="recapOutput" class="output" tabindex="0">Recap will appear here...</pre>
-    </section>
-  </main>
-
-  <footer class="container">
-    <small>Built for builders. Customer obsession means clear handoffs and resilient UX.</small>
-  </footer>
-
-  <script src="script.js" defer></script>
+  <script src="scripts/utils.js"></script>
+  <script src="scripts/dom.js"></script>
+  <script src="scripts/api.js"></script>
+  <script src="scripts/theme.js"></script>
+  <script src="scripts/exportMarkdown.js"></script>
+  <script src="scripts/dragDrop.js"></script>
+  <script src="scripts/main.js"></script>
 </body>
 </html>

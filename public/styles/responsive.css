@@ -1,0 +1,14 @@
+
+@media (max-width: 600px) {
+  .container {
+    padding: 1rem;
+  }
+  .actions {
+    display: flex;
+    flex-direction: column;
+  }
+  .actions > * {
+    margin-top: 0.5rem;
+    width: 100%;
+  }
+}
