@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from filters import enforce_size_limit, contains_deny_terms, scrub_pii
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route("/recap", methods=["POST"])
 def recap():
