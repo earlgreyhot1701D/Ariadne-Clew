@@ -1,41 +1,60 @@
+import re, ast, logging, uuid
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from filters import enforce_size_limit, contains_deny_terms, scrub_pii
+from schema import Recap, RejectedVersion
+from recap_formatter import format_recap
 
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/recap", methods=["POST"])
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(request_id)s %(message)s"
+)
+
+@app.before_request
+def assign_request_id():
+    request.id = str(uuid.uuid4())
+
+@app.route('/v1/recap', methods=['POST'])
 def recap():
-    if not request.is_json:
-        return jsonify({"error": "Expected JSON body"}), 400
-
     data = request.get_json(force=True)
-    chat_log = data.get("chat_log")
-
-    if not isinstance(chat_log, str):
-        return jsonify({"error": "'chat_log' must be a string"}), 400
+    chat_log = data.get("chat_log", "")
 
     try:
         enforce_size_limit(chat_log)
         if contains_deny_terms(chat_log):
             return jsonify({"error": "Input contains forbidden terms"}), 400
-
         cleaned = scrub_pii(chat_log)
-
-        # TODO: Replace this with real recap engine
-        human = f"Recap of your transcript. Length: {len(cleaned)} characters."
-        raw = {
-            "summary": "This is a placeholder summary.",
-            "status": "ok",
-            "length": len(cleaned),
-        }
-        return jsonify({"human_readable": human, "raw_json": raw}), 200
-
     except ValueError as ve:
         return jsonify({"error": str(ve)}), 413
-    except Exception as e:
-        return jsonify({"error": "Unexpected server error."}), 500
 
-if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    # Dummy classifier pipeline
+    code_blocks = re.findall(r"```(?:python)?(.*?)```", cleaned, re.DOTALL)
+    rejected = []
+    final = None
+    if code_blocks:
+        for block in code_blocks:
+            try:
+                ast.parse(block)
+                if not final:
+                    final = block
+                else:
+                    rejected.append(RejectedVersion(code=block, reason="Extra snippet"))
+            except SyntaxError:
+                rejected.append(RejectedVersion(code=block, reason="Invalid Python"))
+
+    recap_obj = Recap(
+        final=final,
+        rejected_versions=rejected,
+        summary="Dummy recap generated.",
+        aha_moments=["Caught code block(s)", "Applied AST validation"],
+        quality_flags=["MVP"]
+    )
+
+    logging.info("Recap generated", extra={"request_id": request.id})
+    return jsonify(format_recap(recap_obj))
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5001)
