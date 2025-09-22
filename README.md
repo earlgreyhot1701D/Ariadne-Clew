@@ -423,3 +423,22 @@ Ariadne Clew exists to serve builders first. It obsesses over clarity and contin
 
 *Built September 2025 for AWS Agent Hackathon*
 *Hackathon prototype → Production-ready foundation*
+
+## License
+
+Copyright (c) 2025 La Shara Cordero
+
+All rights reserved.
+
+This software and its associated files are proprietary and confidential. Unauthorized copying,
+modification, distribution, or use of this software, in whole or in part, is strictly prohibited
+without the express written permission of the author.
+
+This software is not licensed for reuse, redistribution, or commercial deployment. No rights or
+licenses are granted, explicitly or implicitly, under any patents, copyrights, trademarks, or other
+intellectual property.
+
+For inquiries, licensing, or commercial use, contact: lsjcordero@gmail.com
+
+**Note:** This repository was briefly public under MIT license on September 14–15, 2025.  
+As of September 16, 2025, all commits are proprietary.
