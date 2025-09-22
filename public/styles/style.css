@@ -96,6 +96,9 @@ button:hover {
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
+  padding: 1rem;
+  border-radius: 6px;
+  margin-top: 1rem;
 }
 
 fieldset {
@@ -117,4 +120,20 @@ fieldset {
   border-color: var(--accent);
   background: var(--bg);
   color: var(--accent);
+}
+
+/* Responsive layout for output panels */
+.panel {
+  display: inline-block;
+  width: 48%;
+  vertical-align: top;
+  margin: 1%;
+}
+
+@media (max-width: 768px) {
+  .panel {
+    display: block;
+    width: 100%;
+    margin: 0 0 1rem 0;
+  }
 }
