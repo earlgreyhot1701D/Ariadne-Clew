@@ -1,19 +1,132 @@
-
-name: Lint & Format
+name: Ariadne Clew CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
+    branches: [main]
 
 jobs:
-  check:
+  python-quality:
+    name: Python Quality Checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run formatting check
+        run: black --check . --exclude="public|infra"
+
+      - name: Run linting
+        run: ruff . --exclude=public,infra
+
+      - name: Run type checking
+        run: mypy . --exclude="public|infra"
+
+  frontend-quality:
+    name: Frontend Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
-      - run: npm install
-      - run: npm run lint
-      - run: npm run format -- --check
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format -- --check
+
+  backend-tests:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+    needs: [python-quality]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run backend tests
+        run: cd backend && python -m pytest tests/ -v --tb=short
+
+  agent-tests:
+    name: Agent Unit Tests
+    runs-on: ubuntu-latest
+    needs: [python-quality]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run agent tests
+        run: python -m pytest tests/ -v --tb=short
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [backend-tests, agent-tests]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run integration tests
+        run: python integration_test.py
+        timeout-minutes: 5
+
+  build-status:
+    name: Build Status
+    runs-on: ubuntu-latest
+    needs: [python-quality, frontend-quality, backend-tests, agent-tests, integration-tests]
+    if: always()
+    steps:
+      - name: Check build status
+        run: |
+          if [[ "${{ needs.python-quality.result }}" == "success" &&
+                "${{ needs.frontend-quality.result }}" == "success" &&
+                "${{ needs.backend-tests.result }}" == "success" &&
+                "${{ needs.agent-tests.result }}" == "success" &&
+                "${{ needs.integration-tests.result }}" == "success" ]]; then
+            echo "✅ All checks passed!"
+            exit 0
+          else
+            echo "❌ Some checks failed:"
+            echo "Python Quality: ${{ needs.python-quality.result }}"
+            echo "Frontend Quality: ${{ needs.frontend-quality.result }}"
+            echo "Backend Tests: ${{ needs.backend-tests.result }}"
+            echo "Agent Tests: ${{ needs.agent-tests.result }}"
+            echo "Integration Tests: ${{ needs.integration-tests.result }}"
+            exit 1
+          fi
