@@ -1,12 +1,16 @@
+# backend/app.py
 import re
 import ast
 import logging
 import uuid
-from flask import Flask, request, jsonify
+from typing import List, Optional
+
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
-from filters import enforce_size_limit, contains_deny_terms, scrub_pii
-from schema import Recap, RejectedVersion
-from recap_formatter import format_recap
+
+from backend.filters import enforce_size_limit, contains_deny_terms, scrub_pii
+from backend.schema import Recap, RejectedVersion
+from backend.recap_formatter import format_recap
 
 app = Flask(__name__)
 CORS(app)
@@ -17,17 +21,18 @@ logging.basicConfig(
 
 
 @app.before_request
-def assign_request_id():
-    # Prefer client-provided X-Request-Id header; fall back to generated UUID
+def assign_request_id() -> None:
+    """Attach a request ID header or generate one if missing."""
     request.environ["X_REQUEST_ID"] = request.headers.get(
         "X-Request-Id", str(uuid.uuid4())
     )
 
 
 @app.route("/v1/recap", methods=["POST"])
-def recap():
+def recap() -> Response:
+    """Minimal recap endpoint: validates input, parses code blocks, returns recap."""
     data = request.get_json(force=True)
-    chat_log = data.get("chat_log", "")
+    chat_log: str = data.get("chat_log", "")
 
     try:
         enforce_size_limit(chat_log)
@@ -39,18 +44,18 @@ def recap():
 
     # Dummy classifier pipeline
     code_blocks = re.findall(r"```(?:python)?(.*?)```", cleaned, re.DOTALL)
-    rejected = []
-    final = None
-    if code_blocks:
-        for block in code_blocks:
-            try:
-                ast.parse(block)
-                if not final:
-                    final = block
-                else:
-                    rejected.append(RejectedVersion(code=block, reason="Extra snippet"))
-            except SyntaxError:
-                rejected.append(RejectedVersion(code=block, reason="Invalid Python"))
+    rejected: List[RejectedVersion] = []
+    final: Optional[str] = None
+
+    for block in code_blocks:
+        try:
+            ast.parse(block)
+            if final is None:
+                final = block
+            else:
+                rejected.append(RejectedVersion(code=block, reason="Extra snippet"))
+        except SyntaxError:
+            rejected.append(RejectedVersion(code=block, reason="Invalid Python"))
 
     recap_obj = Recap(
         final=final,

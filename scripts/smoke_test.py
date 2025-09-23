@@ -63,7 +63,9 @@ class SmokeTest:
             self.log(f"Failed to start frontend: {e}", is_error=True)
             return False
 
-    def wait_for_service(self, url: str, service_name: str, timeout: int = TIMEOUT) -> bool:
+    def wait_for_service(
+        self, url: str, service_name: str, timeout: int = TIMEOUT
+    ) -> bool:
         """Wait for a service to become available."""
         self.log(f"Waiting for {service_name} at {url}...")
         start_time = time.time()

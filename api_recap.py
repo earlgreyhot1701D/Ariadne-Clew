@@ -3,26 +3,30 @@ API endpoint to generate a recap from chat logs using filters, classifier (Bedro
 code handler, diffing, recap formatter, and memory handler.
 """
 
-from flask import Flask, request, jsonify
-from pathlib import Path
-import logging
-import traceback
-import boto3
-import os
+from __future__ import annotations
+
 import json
+import logging
+import os
+import traceback
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
-from diffcheck import diff_code_blocks
-from schema import validate_recap_output
-from filters import enforce_size_limit, contains_deny_terms, scrub_pii
-from code_handler import validate_code_snippet
-from recap_formatter import format_recap_outputs
-from memory_handler import store_recap
-
+import boto3
+from flask import Flask, Response, jsonify, request
+from flask_cors import CORS
 from pydantic import BaseModel, ValidationError
-from typing import Tuple
+
+from backend.diffcheck import diff_code_blocks
+from backend.filters import enforce_size_limit, contains_deny_terms, scrub_pii
+from backend.code_handler import validate_snippet
+from backend.recap_formatter import format_recap
+from backend.memory_handler import store_recap
+from backend.schema import Recap
 
 # App initialization
 app = Flask(__name__)
+CORS(app)
 
 # Logging setup (ENV-controlled)
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "WARNING"))
@@ -59,10 +63,10 @@ def load_prompts() -> str:
         return f"{system_preamble}\n\n{classifier_instructions}"
     except FileNotFoundError as e:
         logger.critical(f"Prompt file missing: {e}")
-        raise RuntimeError("Required prompt file not found.")
+        raise RuntimeError("Required prompt file not found.") from e
 
 
-def classify_with_bedrock(prompt: str) -> list:
+def classify_with_bedrock(prompt: str) -> List[Dict[str, Any]]:
     """Call Bedrock model to classify chat log into blocks."""
     model_id = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-v2")
     body = {"inputText": prompt}
@@ -73,15 +77,24 @@ def classify_with_bedrock(prompt: str) -> list:
             contentType="application/json",
             body=json.dumps(body),
         )
-        payload = json.loads(resp["body"].read().decode("utf-8"))
-        return payload.get("blocks", [])
+        payload: Any = json.loads(resp["body"].read().decode("utf-8"))
+        if isinstance(payload, dict):
+            blocks = payload.get("blocks", [])
+            if isinstance(blocks, list):
+                return blocks  # type: ignore[no-any-return]
+        return []
     except Exception as e:
         logger.error(f"Bedrock classification failed: {e}")
-        raise RuntimeError("Classification step failed.")
+        raise RuntimeError("Classification step failed.") from e
+
+
+def validate_recap_output(data: Dict[str, Any]) -> Recap:
+    """Validate recap dict against Pydantic schema."""
+    return Recap.model_validate(data)
 
 
 # Core processing function
-def create_recap_from_log(chat_log: str) -> dict:
+def create_recap_from_log(chat_log: str) -> Dict[str, Any]:
     """Process chat logs and generate a structured recap."""
     if not chat_log or not isinstance(chat_log, str):
         raise ValueError("Invalid or missing 'chat_log' (must be a non-empty string).")
@@ -103,10 +116,10 @@ def create_recap_from_log(chat_log: str) -> dict:
     blocks = classify_with_bedrock(full_prompt)
 
     # Validate code snippets
-    validated_blocks = []
+    validated_blocks: List[Dict[str, Any]] = []
     for block in blocks:
         content = block.get("content", "")
-        result = validate_code_snippet(content)
+        result = validate_snippet(content)
         block["validation"] = result
         validated_blocks.append(block)
 
@@ -115,22 +128,21 @@ def create_recap_from_log(chat_log: str) -> dict:
     recap = diff_code_blocks(validated_blocks)
 
     # Format recap (JSON + human-readable)
-    recap = format_recap_outputs(recap)
+    recap = format_recap(recap)
     logger.debug(f"Final recap keys: {list(recap.keys())}")
 
     # Schema validation
     logger.debug("Validating recap structure.")
-    if not validate_recap_output(recap):
-        raise RuntimeError("Recap structure validation failed.")
+    _ = validate_recap_output(recap)
 
     # Memory store
-    store_recap(recap)
+    store_recap("last_recap", recap)
 
     return recap
 
 
 # Encapsulated logic for testability
-def process_recap_request(data: dict) -> Tuple[dict, int]:
+def process_recap_request(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
     try:
         parsed = RecapRequest(**data)
         recap = create_recap_from_log(parsed.chat_log)
@@ -157,7 +169,7 @@ def process_recap_request(data: dict) -> Tuple[dict, int]:
 
 # API route
 @app.route("/v1/recap", methods=["POST"])
-def generate_recap():
+def generate_recap() -> Response:
     """Classify chat content and produce a structured recap."""
     if request.content_type != ContentType.JSON:
         return (
@@ -165,7 +177,7 @@ def generate_recap():
             HttpStatus.UNSUPPORTED_MEDIA_TYPE,
         )
 
-    data = request.get_json(force=True)
+    data: Dict[str, Any] = request.get_json(force=True)
     response, status = process_recap_request(data)
     return jsonify(response), status
 
@@ -173,3 +185,4 @@ def generate_recap():
 # Entrypoint
 if __name__ == "__main__":
     app.run(debug=True)
+
