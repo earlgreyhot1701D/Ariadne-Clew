@@ -15,7 +15,8 @@ logging.basicConfig(
 
 @app.before_request
 def assign_request_id():
-    request.id = str(uuid.uuid4())
+    # Prefer client-provided X-Request-Id header; fall back to generated UUID
+    request.environ["X_REQUEST_ID"] = request.headers.get("X-Request-Id", str(uuid.uuid4()))
 
 
 @app.route("/v1/recap", methods=["POST"])
@@ -54,7 +55,8 @@ def recap():
         quality_flags=["MVP"],
     )
 
-    logging.info("Recap generated", extra={"request_id": request.id})
+    request_id = request.environ.get("X_REQUEST_ID", "")
+    logging.info("Recap generated", extra={"request_id": request_id})
     return jsonify(format_recap(recap_obj))
 
 
