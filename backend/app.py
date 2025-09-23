@@ -1,8 +1,11 @@
+# app.py
+# Production-ready Flask backend for code recap
+
 import re
 import ast
 import logging
 import uuid
-from typing import List, Optional, Tuple, Union, Dict, Any
+from typing import List, Optional, Tuple, Union, Dict, Any, cast
 
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
@@ -15,9 +18,9 @@ app = Flask(__name__)
 CORS(app)
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(request_id)s %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(request_id)s %(message)s",
 )
-
 
 @app.before_request
 def assign_request_id() -> None:
@@ -26,22 +29,21 @@ def assign_request_id() -> None:
         "X-Request-Id", str(uuid.uuid4())
     )
 
-
 @app.route("/v1/recap", methods=["POST"])
 def recap() -> Union[Response, Tuple[Response, int]]:
     """Minimal recap endpoint: validates input, parses code blocks, returns recap."""
-    data = request.get_json(force=True)
+    data: Dict[str, Any] = request.get_json(force=True)
     chat_log: str = data.get("chat_log", "")
 
     try:
         enforce_size_limit(chat_log)
         if contains_deny_terms(chat_log):
             return jsonify({"error": "Input contains forbidden terms"}), 400
-        cleaned = scrub_pii(chat_log)
+        cleaned: str = scrub_pii(chat_log)
     except ValueError as ve:
         return jsonify({"error": str(ve)}), 413
 
-    code_blocks = re.findall(r"```(?:python)?(.*?)```", cleaned, re.DOTALL)
+    code_blocks: List[str] = re.findall(r"```(?:python)?(.*?)```", cleaned, re.DOTALL)
     rejected: List[RejectedVersion] = []
     final: Optional[str] = None
 
@@ -63,9 +65,9 @@ def recap() -> Union[Response, Tuple[Response, int]]:
         quality_flags=["MVP"],
     )
 
-    request_id = request.environ.get("X_REQUEST_ID", "")
+    request_id: str = request.environ.get("X_REQUEST_ID", "")
     logging.info("Recap generated", extra={"request_id": request_id})
 
-    # format_recap returns Dict[str, Any], safe for jsonify
     formatted: Dict[str, Any] = format_recap(recap_obj)
-    return jsonify(formatted)
+    response: Response = jsonify(formatted)
+    return response
