@@ -1,4 +1,7 @@
-import re, ast, logging, uuid
+import re
+import ast
+import logging
+import uuid
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from filters import enforce_size_limit, contains_deny_terms, scrub_pii
@@ -16,7 +19,9 @@ logging.basicConfig(
 @app.before_request
 def assign_request_id():
     # Prefer client-provided X-Request-Id header; fall back to generated UUID
-    request.environ["X_REQUEST_ID"] = request.headers.get("X-Request-Id", str(uuid.uuid4()))
+    request.environ["X_REQUEST_ID"] = request.headers.get(
+        "X-Request-Id", str(uuid.uuid4())
+    )
 
 
 @app.route("/v1/recap", methods=["POST"])

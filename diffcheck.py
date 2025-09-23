@@ -4,7 +4,7 @@ Used by Ariadne Clew to generate structured recaps from chat logs.
 """
 
 import difflib
-from typing import List, TypedDict, Optional
+from typing import List, TypedDict
 
 
 class CodeBlock(TypedDict):

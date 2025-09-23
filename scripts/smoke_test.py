@@ -8,9 +8,8 @@ import sys
 import time
 import requests
 import subprocess
-import threading
-import json
 from pathlib import Path
+from typing import Optional, Any
 
 # Configuration
 BACKEND_URL = "http://localhost:5001"
@@ -19,20 +18,20 @@ TIMEOUT = 30  # seconds
 
 
 class SmokeTest:
-    def __init__(self):
-        self.backend_process = None
-        self.frontend_process = None
-        self.success = True
-        self.errors = []
+    def __init__(self) -> None:
+        self.backend_process: Optional[subprocess.Popen[Any]] = None
+        self.frontend_process: Optional[subprocess.Popen[Any]] = None
+        self.success: bool = True
+        self.errors: list[str] = []
 
-    def log(self, message, is_error=False):
+    def log(self, message: str, is_error: bool = False) -> None:
         prefix = "❌ ERROR" if is_error else "✅ INFO"
         print(f"{prefix}: {message}")
         if is_error:
             self.errors.append(message)
             self.success = False
 
-    def start_backend(self):
+    def start_backend(self) -> bool:
         """Start the Flask backend server."""
         try:
             backend_dir = Path(__file__).parent / "backend"
@@ -48,7 +47,7 @@ class SmokeTest:
             self.log(f"Failed to start backend: {e}", is_error=True)
             return False
 
-    def start_frontend(self):
+    def start_frontend(self) -> bool:
         """Start a simple HTTP server for frontend."""
         try:
             public_dir = Path(__file__).parent / "public"
@@ -64,7 +63,7 @@ class SmokeTest:
             self.log(f"Failed to start frontend: {e}", is_error=True)
             return False
 
-    def wait_for_service(self, url, service_name, timeout=TIMEOUT):
+    def wait_for_service(self, url: str, service_name: str, timeout: int = TIMEOUT) -> bool:
         """Wait for a service to become available."""
         self.log(f"Waiting for {service_name} at {url}...")
         start_time = time.time()
@@ -72,7 +71,7 @@ class SmokeTest:
         while time.time() - start_time < timeout:
             try:
                 response = requests.get(url, timeout=5)
-                if response.status_code in [200, 404]:  # 404 is fine for root endpoints
+                if response.status_code in [200, 404]:
                     self.log(f"{service_name} is ready")
                     return True
             except requests.exceptions.RequestException:
@@ -82,10 +81,9 @@ class SmokeTest:
         self.log(f"{service_name} failed to start within {timeout}s", is_error=True)
         return False
 
-    def test_backend_health(self):
+    def test_backend_health(self) -> None:
         """Test that backend is responding."""
         try:
-            # Test invalid endpoint returns 404
             response = requests.get(f"{BACKEND_URL}/nonexistent")
             if response.status_code == 404:
                 self.log("Backend 404 handling works")
@@ -97,9 +95,9 @@ class SmokeTest:
         except Exception as e:
             self.log(f"Backend health check failed: {e}", is_error=True)
 
-    def test_recap_api(self):
+    def test_recap_api(self) -> None:
         """Test the main recap API endpoint."""
-        test_cases = [
+        test_cases: list[dict[str, Any]] = [
             {
                 "name": "Valid request",
                 "payload": {"chat_log": "Hello, this is a test conversation."},
@@ -138,8 +136,6 @@ class SmokeTest:
 
                 if response.status_code == test_case["expected_status"]:
                     self.log(f"API test '{test_case['name']}' passed")
-
-                    # For successful requests, check response structure
                     if response.status_code == 200:
                         data = response.json()
                         if "human_readable" in data and "raw_json" in data:
@@ -155,9 +151,9 @@ class SmokeTest:
             except Exception as e:
                 self.log(f"API test '{test_case['name']}' error: {e}", is_error=True)
 
-    def test_frontend_files(self):
+    def test_frontend_files(self) -> None:
         """Test that frontend files are accessible."""
-        files_to_check = [
+        files_to_check: list[str] = [
             "/",
             "/index.html",
             "/styles/style.css",
@@ -181,7 +177,7 @@ class SmokeTest:
                     f"Error checking frontend file {file_path}: {e}", is_error=True
                 )
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clean up processes."""
         if self.backend_process:
             self.backend_process.terminate()
@@ -199,26 +195,23 @@ class SmokeTest:
 
         self.log("Cleanup completed")
 
-    def run(self):
+    def run(self) -> bool:
         """Run the complete smoke test suite."""
         self.log("🚀 Starting Ariadne Clew smoke test")
 
         try:
-            # Start services
             if not self.start_backend():
                 return False
 
             if not self.start_frontend():
                 return False
 
-            # Wait for services to be ready
             if not self.wait_for_service(BACKEND_URL, "Backend"):
                 return False
 
             if not self.wait_for_service(FRONTEND_URL, "Frontend"):
                 return False
 
-            # Run tests
             self.test_backend_health()
             self.test_recap_api()
             self.test_frontend_files()
@@ -226,7 +219,6 @@ class SmokeTest:
         finally:
             self.cleanup()
 
-        # Report results
         if self.success:
             self.log("🎉 All smoke tests passed!")
             return True
@@ -238,7 +230,7 @@ class SmokeTest:
             return False
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     smoke_test = SmokeTest()
     success = smoke_test.run()
