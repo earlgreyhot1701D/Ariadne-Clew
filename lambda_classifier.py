@@ -11,6 +11,7 @@ logger.setLevel(logging.INFO)
 
 MAX_CHARS = 100_000  # ~20k tokens max
 
+
 def validate_input_length(text: str) -> None:
     """
     Ensures input is within safe token length for MVP.
@@ -22,6 +23,7 @@ def validate_input_length(text: str) -> None:
             f"Limit is {MAX_CHARS:,} characters (~20k tokens). "
             "Please trim or split your file before analysis."
         )
+
 
 def classify_blocks(chat_log: Union[str, List[str]]) -> List[Block]:
     """
@@ -55,7 +57,7 @@ def classify_blocks(chat_log: Union[str, List[str]]) -> List[Block]:
         content = block.strip()
         if not content:
             continue
-        block_type = 'code' if idx % 2 == 1 else 'text'
-        result.append({'type': block_type, 'content': content})
+        block_type = "code" if idx % 2 == 1 else "text"
+        result.append({"type": block_type, "content": content})
 
     return result

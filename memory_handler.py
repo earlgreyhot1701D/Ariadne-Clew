@@ -1,4 +1,4 @@
-""" 
+"""
 memory_handler.py
 Lightweight wrapper for Bedrock AgentCore Memory API.
 Stores and retrieves final chosen code snippets across sessions.
@@ -8,11 +8,13 @@ from typing import Dict, Optional
 
 try:
     from agent import memory  # Bedrock AgentCore runtime
+
     AGENTCORE_AVAILABLE = True
 except ImportError:
     AGENTCORE_AVAILABLE = False
 
 _memory_store: Dict[str, Dict] = {}  # fallback local store
+
 
 def store_memory(session_id: str, recap: Dict) -> str:
     """Stores a recap in Bedrock memory or fallback local store."""
@@ -29,6 +31,7 @@ def store_memory(session_id: str, recap: Dict) -> str:
         _memory_store[session_id] = recap
         return session_id
 
+
 def retrieve_memory(session_id: str) -> Optional[Dict]:
     """Retrieves recap data for a given session ID."""
     if not isinstance(session_id, str):
@@ -41,6 +44,7 @@ def retrieve_memory(session_id: str) -> Optional[Dict]:
             return None
     else:
         return _memory_store.get(session_id)
+
 
 def summarize_memory(memory_obj: Optional[Dict]) -> str:
     """Creates a summary message from stored memory object."""

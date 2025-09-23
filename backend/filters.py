@@ -9,15 +9,18 @@ PII_PATTERNS = [
     (re.compile(r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b"), "[redacted phone]"),
 ]
 
+
 def enforce_size_limit(text: str) -> None:
     """Raise ValueError if input exceeds MAX_CHARS."""
     if len(text) > MAX_CHARS:
         raise ValueError(f"Input too large ({len(text)} chars). Limit is {MAX_CHARS}.")
 
+
 def contains_deny_terms(text: str) -> bool:
     """Return True if text contains any deny-listed term."""
     lowered = text.lower()
     return any(term in lowered for term in DENY_TERMS)
+
 
 def scrub_pii(text: str) -> str:
     """Replace emails and phone numbers with redacted tags."""

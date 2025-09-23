@@ -1,8 +1,8 @@
-
 import pytest
 from diffcheck import deduplicate_code_snippets, add_versions, diff_code_blocks
 
 # --- Fixtures ---
+
 
 @pytest.fixture
 def raw_blocks():
@@ -14,7 +14,9 @@ def raw_blocks():
         {"type": "text", "content": "Final note"},
     ]
 
+
 # --- Tests ---
+
 
 def test_deduplicate_code_snippets():
     snippets = [
@@ -27,6 +29,7 @@ def test_deduplicate_code_snippets():
     assert result[0]["content"] == "a = 1"
     assert result[1]["content"] == "b = 2"
 
+
 def test_add_versions():
     snippets = [
         {"type": "code", "content": "x = 1"},
@@ -38,6 +41,7 @@ def test_add_versions():
     assert "snippet_1" in enriched[0]["snippet_id"]
     assert "diff_summary" in enriched[1]
 
+
 def test_diff_code_blocks_full(raw_blocks):
     recap = diff_code_blocks(raw_blocks)
     assert "final" in recap
@@ -46,6 +50,7 @@ def test_diff_code_blocks_full(raw_blocks):
     assert recap["final"]["version"] == 2
     assert len(recap["rejected"]) == 1
     assert recap["text_summary"] == "Final note"
+
 
 def test_diff_code_blocks_empty():
     recap = diff_code_blocks([])

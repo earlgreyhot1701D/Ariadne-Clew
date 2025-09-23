@@ -1,6 +1,7 @@
 import pytest
 from lambda_classifier import validate_input_length
 
+
 def test_validate_input_within_limit():
     # Small string should pass without error
     text = "hello world" * 100
@@ -8,6 +9,7 @@ def test_validate_input_within_limit():
         validate_input_length(text)
     except ValueError:
         pytest.fail("validate_input_length() raised ValueError unexpectedly!")
+
 
 def test_validate_input_exceeds_limit():
     # Oversized string should raise ValueError

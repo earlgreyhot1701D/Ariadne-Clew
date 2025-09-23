@@ -13,6 +13,7 @@ import ast
 # Optional Bedrock AgentCore support
 try:
     from agent import tools, memory  # Bedrock AgentCore runtime
+
     AGENTCORE_AVAILABLE = True
 except ImportError as e:
     tools = None
@@ -45,12 +46,14 @@ def version_snippets(snippets: List[str]) -> List[Dict]:
             )
             diff_summary = "\n".join(diff)
 
-        results.append({
-            "snippet_id": str(uuid.uuid4()),
-            "version": i + 1,
-            "code": snippet,
-            "diff_summary": diff_summary
-        })
+        results.append(
+            {
+                "snippet_id": str(uuid.uuid4()),
+                "version": i + 1,
+                "code": snippet,
+                "diff_summary": diff_summary,
+            }
+        )
     return results
 
 
@@ -58,27 +61,14 @@ def validate_snippet(snippet: str) -> Dict:
     """Validate a Python code snippet safely using AST parsing."""
     try:
         ast.parse(snippet)
-        return {
-            "status": "valid",
-            "output": "Parsed successfully.",
-            "error": ""
-        }
+        return {"status": "valid", "output": "Parsed successfully.", "error": ""}
     except SyntaxError as e:
         if "unexpected EOF" in str(e) or snippet.strip().endswith(("=", ":", "(", "[")):
-            return {
-                "status": "partial",
-                "error": "incomplete snippet"
-            }
+            return {"status": "partial", "error": "incomplete snippet"}
         else:
-            return {
-                "status": "invalid",
-                "error": f"Syntax error: {str(e)}"
-            }
+            return {"status": "invalid", "error": f"Syntax error: {str(e)}"}
     except Exception as e:
-        return {
-            "status": "invalid",
-            "error": str(e)
-        }
+        return {"status": "invalid", "error": str(e)}
 
 
 def reconcile_intent(snippet_data: Dict, user_text: str) -> Dict:
@@ -92,10 +82,9 @@ def reconcile_intent(snippet_data: Dict, user_text: str) -> Dict:
     else:
         reconciliation = "unknown"
 
-    snippet_data.update({
-        "user_intent": reconciliation,
-        "reconciliation": reconciliation
-    })
+    snippet_data.update(
+        {"user_intent": reconciliation, "reconciliation": reconciliation}
+    )
     return snippet_data
 
 
@@ -107,7 +96,4 @@ def summarize_session(snippet_results: List[Dict]) -> Dict:
             final = s
             break
 
-    return {
-        "final": final or {},
-        "all_snippets": snippet_results
-    }
+    return {"final": final or {}, "all_snippets": snippet_results}

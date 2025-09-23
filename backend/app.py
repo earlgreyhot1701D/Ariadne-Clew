@@ -9,15 +9,16 @@ app = Flask(__name__)
 CORS(app)
 
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(request_id)s %(message)s"
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(request_id)s %(message)s"
 )
+
 
 @app.before_request
 def assign_request_id():
     request.id = str(uuid.uuid4())
 
-@app.route('/v1/recap', methods=['POST'])
+
+@app.route("/v1/recap", methods=["POST"])
 def recap():
     data = request.get_json(force=True)
     chat_log = data.get("chat_log", "")
@@ -50,11 +51,12 @@ def recap():
         rejected_versions=rejected,
         summary="Dummy recap generated.",
         aha_moments=["Caught code block(s)", "Applied AST validation"],
-        quality_flags=["MVP"]
+        quality_flags=["MVP"],
     )
 
     logging.info("Recap generated", extra={"request_id": request.id})
     return jsonify(format_recap(recap_obj))
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5001)

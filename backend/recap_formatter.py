@@ -1,5 +1,6 @@
 from schema import Recap
 
+
 def format_recap(data: Recap) -> dict:
     """Return dual output: human-readable string and raw JSON dict."""
     human = []
@@ -14,7 +15,4 @@ def format_recap(data: Recap) -> dict:
         human.append(f"Flags: {', '.join(data.quality_flags)}")
     human.append(f"Summary: {data.summary}")
 
-    return {
-        "human_readable": "\n".join(human),
-        "raw_json": data.dict()
-    }
+    return {"human_readable": "\n".join(human), "raw_json": data.dict()}

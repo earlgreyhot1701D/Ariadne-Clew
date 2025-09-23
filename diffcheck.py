@@ -71,12 +71,14 @@ def add_versions(snippets: List[CodeBlock]) -> List[EnrichedSnippet]:
                 n=2,
             )
         )
-        result.append({
-            "version": i + 1,
-            "snippet_id": f"snippet_{i + 1}",
-            "content": code,
-            "diff_summary": "\n".join(diff) if diff else "No change",
-        })
+        result.append(
+            {
+                "version": i + 1,
+                "snippet_id": f"snippet_{i + 1}",
+                "content": code,
+                "diff_summary": "\n".join(diff) if diff else "No change",
+            }
+        )
         prev_code = code
 
     return result
@@ -116,4 +118,3 @@ def diff_code_blocks(blocks: List[CodeBlock]) -> RecapOutput:
         "rejected": enriched[:-1] if len(enriched) > 1 else [],
         "text_summary": text_blocks[-1]["content"] if text_blocks else "",
     }
-

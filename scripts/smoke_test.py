@@ -17,6 +17,7 @@ BACKEND_URL = "http://localhost:5001"
 FRONTEND_URL = "http://localhost:8000"
 TIMEOUT = 30  # seconds
 
+
 class SmokeTest:
     def __init__(self):
         self.backend_process = None
@@ -39,7 +40,7 @@ class SmokeTest:
                 [sys.executable, "app.py"],
                 cwd=backend_dir,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
             )
             self.log("Backend process started")
             return True
@@ -55,7 +56,7 @@ class SmokeTest:
                 [sys.executable, "-m", "http.server", "8000"],
                 cwd=public_dir,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
             )
             self.log("Frontend server started")
             return True
@@ -67,7 +68,7 @@ class SmokeTest:
         """Wait for a service to become available."""
         self.log(f"Waiting for {service_name} at {url}...")
         start_time = time.time()
-        
+
         while time.time() - start_time < timeout:
             try:
                 response = requests.get(url, timeout=5)
@@ -77,7 +78,7 @@ class SmokeTest:
             except requests.exceptions.RequestException:
                 pass
             time.sleep(1)
-        
+
         self.log(f"{service_name} failed to start within {timeout}s", is_error=True)
         return False
 
@@ -89,7 +90,10 @@ class SmokeTest:
             if response.status_code == 404:
                 self.log("Backend 404 handling works")
             else:
-                self.log(f"Backend unexpected status for 404 test: {response.status_code}", is_error=True)
+                self.log(
+                    f"Backend unexpected status for 404 test: {response.status_code}",
+                    is_error=True,
+                )
         except Exception as e:
             self.log(f"Backend health check failed: {e}", is_error=True)
 
@@ -99,24 +103,24 @@ class SmokeTest:
             {
                 "name": "Valid request",
                 "payload": {"chat_log": "Hello, this is a test conversation."},
-                "expected_status": 200
+                "expected_status": 200,
             },
             {
                 "name": "Missing chat_log",
                 "payload": {"wrong_field": "value"},
-                "expected_status": 400
+                "expected_status": 400,
             },
             {
                 "name": "Invalid JSON",
                 "payload": None,
                 "expected_status": 400,
-                "raw_data": "invalid json"
+                "raw_data": "invalid json",
             },
             {
                 "name": "Forbidden terms",
                 "payload": {"chat_log": "Here is my password: secret123"},
-                "expected_status": 400
-            }
+                "expected_status": 400,
+            },
         ]
 
         for test_case in test_cases:
@@ -125,18 +129,16 @@ class SmokeTest:
                     response = requests.post(
                         f"{BACKEND_URL}/recap",
                         data=test_case["raw_data"],
-                        headers={"Content-Type": "application/json"}
+                        headers={"Content-Type": "application/json"},
                     )
                 else:
                     response = requests.post(
-                        f"{BACKEND_URL}/recap",
-                        json=test_case["payload"],
-                        timeout=10
+                        f"{BACKEND_URL}/recap", json=test_case["payload"], timeout=10
                     )
-                
+
                 if response.status_code == test_case["expected_status"]:
                     self.log(f"API test '{test_case['name']}' passed")
-                    
+
                     # For successful requests, check response structure
                     if response.status_code == 200:
                         data = response.json()
@@ -145,8 +147,11 @@ class SmokeTest:
                         else:
                             self.log("Response missing required fields", is_error=True)
                 else:
-                    self.log(f"API test '{test_case['name']}' failed: got {response.status_code}, expected {test_case['expected_status']}", is_error=True)
-                    
+                    self.log(
+                        f"API test '{test_case['name']}' failed: got {response.status_code}, expected {test_case['expected_status']}",
+                        is_error=True,
+                    )
+
             except Exception as e:
                 self.log(f"API test '{test_case['name']}' error: {e}", is_error=True)
 
@@ -154,22 +159,27 @@ class SmokeTest:
         """Test that frontend files are accessible."""
         files_to_check = [
             "/",
-            "/index.html", 
+            "/index.html",
             "/styles/style.css",
             "/styles/theme.css",
             "/scripts/main.js",
-            "/scripts/api.js"
+            "/scripts/api.js",
         ]
-        
+
         for file_path in files_to_check:
             try:
                 response = requests.get(f"{FRONTEND_URL}{file_path}", timeout=5)
                 if response.status_code == 200:
                     self.log(f"Frontend file accessible: {file_path}")
                 else:
-                    self.log(f"Frontend file not accessible: {file_path} (status: {response.status_code})", is_error=True)
+                    self.log(
+                        f"Frontend file not accessible: {file_path} (status: {response.status_code})",
+                        is_error=True,
+                    )
             except Exception as e:
-                self.log(f"Error checking frontend file {file_path}: {e}", is_error=True)
+                self.log(
+                    f"Error checking frontend file {file_path}: {e}", is_error=True
+                )
 
     def cleanup(self):
         """Clean up processes."""
@@ -179,43 +189,43 @@ class SmokeTest:
                 self.backend_process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 self.backend_process.kill()
-        
+
         if self.frontend_process:
             self.frontend_process.terminate()
             try:
                 self.frontend_process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 self.frontend_process.kill()
-        
+
         self.log("Cleanup completed")
 
     def run(self):
         """Run the complete smoke test suite."""
         self.log("🚀 Starting Ariadne Clew smoke test")
-        
+
         try:
             # Start services
             if not self.start_backend():
                 return False
-            
+
             if not self.start_frontend():
                 return False
-            
+
             # Wait for services to be ready
             if not self.wait_for_service(BACKEND_URL, "Backend"):
                 return False
-                
+
             if not self.wait_for_service(FRONTEND_URL, "Frontend"):
                 return False
-            
+
             # Run tests
             self.test_backend_health()
             self.test_recap_api()
             self.test_frontend_files()
-            
+
         finally:
             self.cleanup()
-        
+
         # Report results
         if self.success:
             self.log("🎉 All smoke tests passed!")
@@ -227,11 +237,13 @@ class SmokeTest:
                 self.log(f"  - {error}")
             return False
 
+
 def main():
     """Main entry point."""
     smoke_test = SmokeTest()
     success = smoke_test.run()
     sys.exit(0 if success else 1)
+
 
 if __name__ == "__main__":
     main()

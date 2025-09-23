@@ -3,6 +3,7 @@ from code_handler import extract_code_blocks, version_snippets, validate_snippet
 
 # --- Fixtures ---
 
+
 @pytest.fixture
 def mock_chat():
     return """
@@ -19,7 +20,9 @@ def mock_chat():
     ```
     """
 
+
 # --- Tests ---
+
 
 def test_extract_code_blocks(mock_chat):
     blocks = extract_code_blocks(mock_chat)
@@ -27,9 +30,11 @@ def test_extract_code_blocks(mock_chat):
     assert "def greet()" in blocks[0]
     assert "Good day" in blocks[1]
 
+
 def test_extract_raises_on_unmatched_fence():
     with pytest.raises(ValueError, match="Unmatched code fence"):
         extract_code_blocks("```incomplete")
+
 
 def test_version_snippets_structure():
     snippets = ["print(1)", "print(2)"]
@@ -40,15 +45,18 @@ def test_version_snippets_structure():
     assert result[1]["version"] == 2
     assert "diff_summary" in result[1]
 
+
 def test_validate_snippet_valid():
     result = validate_snippet("print('Hello')")
     assert result["status"] == "valid"
     assert result["error"] == ""
 
+
 def test_validate_snippet_partial():
     result = validate_snippet("x =")
     assert result["status"] == "partial"
     assert "incomplete" in result["error"]
+
 
 def test_validate_snippet_invalid():
     result = validate_snippet("def broken(:)")
