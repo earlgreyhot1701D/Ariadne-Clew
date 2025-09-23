@@ -16,13 +16,7 @@ def _key_to_path(key: str) -> Path:
 
 
 def store_recap(key: str, recap: Dict[str, Any]) -> None:
-    """
-    Persist a recap dict to disk under a given key.
-
-    Args:
-        key: Identifier for this recap (e.g., session or request ID).
-        recap: Recap data to persist (must be JSON-serializable).
-    """
+    """Persist a recap dict to disk under a given key."""
     path = _key_to_path(key)
     with path.open("w", encoding="utf-8") as f:
         json.dump(recap, f, ensure_ascii=False, indent=2)
@@ -30,8 +24,8 @@ def store_recap(key: str, recap: Dict[str, Any]) -> None:
 
 def load_cached_recap(key: str) -> Optional[Dict[str, Any]]:
     """
-    Load a recap dict from disk if it exists. Returns None if not found
-    or if the file contents are invalid.
+    Load a recap dict from disk if it exists.
+    Returns None if not found or invalid.
     """
     path = _key_to_path(key)
     if not path.exists():
@@ -39,11 +33,11 @@ def load_cached_recap(key: str) -> Optional[Dict[str, Any]]:
 
     try:
         with path.open("r", encoding="utf-8") as f:
-            raw: Any = json.load(f)
+            raw = json.load(f)
     except JSONDecodeError:
         return None
 
     if isinstance(raw, dict):
-        # Force keys to str to guarantee Dict[str, Any] type
+        # Build a new dict[str, Any] to satisfy mypy
         return {str(k): v for k, v in raw.items()}
     return None

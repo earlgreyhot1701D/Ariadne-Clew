@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+
 def diff_code_blocks(blocks: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Pick one 'final' code block and mark the rest as rejected.
@@ -25,7 +26,9 @@ def diff_code_blocks(blocks: List[Dict[str, Any]]) -> Dict[str, Any]:
             else:
                 rejected.append({"code": block["content"], "reason": "Extra snippet"})
         else:
-            rejected.append({"code": block.get("content", ""), "reason": "Invalid Python"})
+            rejected.append(
+                {"code": block.get("content", ""), "reason": "Invalid Python"}
+            )
 
     return {
         "final": final,

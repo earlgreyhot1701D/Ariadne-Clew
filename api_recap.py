@@ -58,8 +58,8 @@ class RecapRequest(BaseModel):
 def load_prompts() -> str:
     """Load system and classifier prompts from repo root."""
     try:
-        system_preamble = Path("system_prompt.md").read_text()
-        classifier_instructions = Path("classifier_prompt.md").read_text()
+        system_preamble = Path("system_prompt.md").read_text(encoding="utf-8")
+        classifier_instructions = Path("classifier_prompt.md").read_text(encoding="utf-8")
         return f"{system_preamble}\n\n{classifier_instructions}"
     except FileNotFoundError as e:
         logger.critical(f"Prompt file missing: {e}")
@@ -93,9 +93,8 @@ def validate_recap_output(data: Dict[str, Any]) -> Recap:
     return Recap.model_validate(data)
 
 
-# Core processing function
 def create_recap_from_log(chat_log: str) -> Dict[str, Any]:
-    """Process chat logs and generate a structured recap."""
+    """Process chat logs and generate a structured recap payload (JSON-serializable dict)."""
     if not chat_log or not isinstance(chat_log, str):
         raise ValueError("Invalid or missing 'chat_log' (must be a non-empty string).")
 
@@ -115,7 +114,7 @@ def create_recap_from_log(chat_log: str) -> Dict[str, Any]:
     logger.debug("Classifying chat log into blocks.")
     blocks = classify_with_bedrock(full_prompt)
 
-    # Validate code snippets
+    # Validate code snippets (syntax check, etc.)
     validated_blocks: List[Dict[str, Any]] = []
     for block in blocks:
         content = block.get("content", "")
@@ -123,26 +122,28 @@ def create_recap_from_log(chat_log: str) -> Dict[str, Any]:
         block["validation"] = result
         validated_blocks.append(block)
 
-    # Diffing
+    # Diffing / reconciliation into recap dict (final + rejected_versions + summary fields)
     logger.debug("Reconciling code blocks.")
-    recap = diff_code_blocks(validated_blocks)
+    recap_dict: Dict[str, Any] = diff_code_blocks(validated_blocks)
 
-    # Format recap (JSON + human-readable)
-    recap = format_recap(recap)
-    logger.debug(f"Final recap keys: {list(recap.keys())}")
+    # Validate recap shape -> Pydantic model
+    recap_model: Recap = Recap.model_validate(recap_dict)
 
-    # Schema validation
-    logger.debug("Validating recap structure.")
-    _ = validate_recap_output(recap)
+    # Format recap into final response payload
+    recap_payload: Dict[str, Any] = format_recap(recap_model)
+    logger.debug(f"Final recap keys: {list(recap_payload.keys())}")
 
-    # Memory store
-    store_recap("last_recap", recap)
+    # Optional: validate the payload if you want to ensure raw_json is schema-correct
+    _ = validate_recap_output(recap_model.model_dump())
 
-    return recap
+    # Persist the formatted recap
+    store_recap("last_recap", recap_payload)
+
+    return recap_payload
 
 
-# Encapsulated logic for testability
 def process_recap_request(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
+    """Encapsulate request handling to keep the route thin and testable."""
     try:
         parsed = RecapRequest(**data)
         recap = create_recap_from_log(parsed.chat_log)
@@ -167,7 +168,6 @@ def process_recap_request(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
         return {"error": "Internal server error."}, HttpStatus.INTERNAL_SERVER_ERROR
 
 
-# API route
 @app.route("/v1/recap", methods=["POST"])
 def generate_recap() -> Union[Response, Tuple[Response, int]]:
     """Classify chat content and produce a structured recap."""
@@ -182,6 +182,5 @@ def generate_recap() -> Union[Response, Tuple[Response, int]]:
     return jsonify(response), status
 
 
-# Entrypoint
 if __name__ == "__main__":
     app.run(debug=True)

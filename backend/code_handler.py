@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 
+
 def validate_snippet(code: str) -> bool:
     """
     Validate if the provided string is valid Python code.

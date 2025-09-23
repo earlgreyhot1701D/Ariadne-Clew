@@ -1,9 +1,8 @@
-# backend/app.py
 import re
 import ast
 import logging
 import uuid
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Dict, Any
 
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
@@ -42,7 +41,6 @@ def recap() -> Union[Response, Tuple[Response, int]]:
     except ValueError as ve:
         return jsonify({"error": str(ve)}), 413
 
-    # Dummy classifier pipeline
     code_blocks = re.findall(r"```(?:python)?(.*?)```", cleaned, re.DOTALL)
     rejected: List[RejectedVersion] = []
     final: Optional[str] = None
@@ -67,8 +65,7 @@ def recap() -> Union[Response, Tuple[Response, int]]:
 
     request_id = request.environ.get("X_REQUEST_ID", "")
     logging.info("Recap generated", extra={"request_id": request_id})
-    return jsonify(format_recap(recap_obj))
 
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001)
+    # format_recap returns Dict[str, Any], safe for jsonify
+    formatted: Dict[str, Any] = format_recap(recap_obj)
+    return jsonify(formatted)
