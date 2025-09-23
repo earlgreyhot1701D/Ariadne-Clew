@@ -10,7 +10,7 @@ import logging
 import os
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import boto3
 from flask import Flask, Response, jsonify, request
@@ -81,7 +81,7 @@ def classify_with_bedrock(prompt: str) -> List[Dict[str, Any]]:
         if isinstance(payload, dict):
             blocks = payload.get("blocks", [])
             if isinstance(blocks, list):
-                return blocks  # type: ignore[no-any-return]
+                return blocks
         return []
     except Exception as e:
         logger.error(f"Bedrock classification failed: {e}")
@@ -169,7 +169,7 @@ def process_recap_request(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
 
 # API route
 @app.route("/v1/recap", methods=["POST"])
-def generate_recap() -> Response:
+def generate_recap() -> Union[Response, Tuple[Response, int]]:
     """Classify chat content and produce a structured recap."""
     if request.content_type != ContentType.JSON:
         return (
@@ -185,4 +185,3 @@ def generate_recap() -> Response:
 # Entrypoint
 if __name__ == "__main__":
     app.run(debug=True)
-

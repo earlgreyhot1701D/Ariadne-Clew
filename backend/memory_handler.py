@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional
 
 _CACHE_DIR = Path(".cache")
 _CACHE_DIR.mkdir(exist_ok=True)
@@ -36,6 +36,7 @@ def load_cached_recap(key: str) -> Optional[Dict[str, Any]]:
     path = _key_to_path(key)
     if not path.exists():
         return None
+
     try:
         with path.open("r", encoding="utf-8") as f:
             raw: Any = json.load(f)
@@ -43,5 +44,6 @@ def load_cached_recap(key: str) -> Optional[Dict[str, Any]]:
         return None
 
     if isinstance(raw, dict):
-        return cast(Dict[str, Any], raw)
+        # Force keys to str to guarantee Dict[str, Any] type
+        return {str(k): v for k, v in raw.items()}
     return None

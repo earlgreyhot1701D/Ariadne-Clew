@@ -3,7 +3,7 @@ import re
 import ast
 import logging
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Tuple, Union
 
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
@@ -29,7 +29,7 @@ def assign_request_id() -> None:
 
 
 @app.route("/v1/recap", methods=["POST"])
-def recap() -> Response:
+def recap() -> Union[Response, Tuple[Response, int]]:
     """Minimal recap endpoint: validates input, parses code blocks, returns recap."""
     data = request.get_json(force=True)
     chat_log: str = data.get("chat_log", "")
