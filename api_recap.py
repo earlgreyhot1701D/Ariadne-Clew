@@ -59,7 +59,9 @@ def load_prompts() -> str:
     """Load system and classifier prompts from repo root."""
     try:
         system_preamble = Path("system_prompt.md").read_text(encoding="utf-8")
-        classifier_instructions = Path("classifier_prompt.md").read_text(encoding="utf-8")
+        classifier_instructions = Path("classifier_prompt.md").read_text(
+            encoding="utf-8"
+        )
         return f"{system_preamble}\n\n{classifier_instructions}"
     except FileNotFoundError as e:
         logger.critical(f"Prompt file missing: {e}")

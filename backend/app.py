@@ -22,12 +22,14 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(request_id)s %(message)s",
 )
 
+
 @app.before_request
 def assign_request_id() -> None:
     """Attach a request ID header or generate one if missing."""
     request.environ["X_REQUEST_ID"] = request.headers.get(
         "X-Request-Id", str(uuid.uuid4())
     )
+
 
 @app.route("/v1/recap", methods=["POST"])
 def recap() -> Union[Response, Tuple[Response, int]]:
