@@ -1,4 +1,6 @@
-# Byte-compiled / optimized / DLL files
+# ------------------
+# Python
+# ------------------
 __pycache__/
 *.py[cod]
 *$py.class
@@ -6,6 +8,7 @@ __pycache__/
 # Virtual environment
 .venv/
 .env/
+venv/
 
 # Test / coverage
 .pytest_cache/
@@ -13,11 +16,30 @@ __pycache__/
 .coverage
 coverage.xml
 
-# Mac/Editor junk
+# ------------------
+# Node / JavaScript
+# ------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build artifacts
+dist/
+build/
+.next/
+out/
+
+# ------------------
+# Editor / OS Junk
+# ------------------
 .DS_Store
 *.swp
 .idea/
 .vscode/
 
-#Artifact
+# ------------------
+# Archives
+# ------------------
 *.zip
