@@ -7,12 +7,100 @@
   <link rel="stylesheet" href="styles/style.css" />
   <link rel="stylesheet" href="styles/theme.css" />
   <link rel="stylesheet" href="styles/responsive.css" />
+  <style>
+    /* Extra polish layer */
+    body {
+      font-family: "Poppins", sans-serif;
+      line-height: 1.5;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header.hero {
+      text-align: center;
+      padding: 3rem 1rem 2rem;
+      position: relative;
+    }
+
+    header.hero::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 200px;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      border-radius: 4px;
+      transform: translateX(-50%);
+      animation: pulseThread 3s infinite alternate;
+    }
+
+    @keyframes pulseThread {
+      from { opacity: 0.4; }
+      to { opacity: 1; }
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .tagline {
+      font-style: italic;
+      color: var(--accent-2);
+      margin-top: 0.5rem;
+    }
+
+    form#recap-form {
+      margin-top: 2rem;
+      background: var(--panel);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    button {
+      border-radius: 6px;
+      padding: 0.6rem 1.2rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    #recap-output {
+      margin-top: 2rem;
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+      font-family: "Source Code Pro", monospace;
+      white-space: pre-wrap;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding: 2rem 1rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <header>
-      <h1>Ariadne Clew</h1>
-      <p class="subtitle">Session recap generator</p>
+    <header class="hero">
+      <h1>🧶 Ariadne Clew</h1>
+      <p class="subtitle">Reasoning Preservation for Builders</p>
+      <p class="tagline">“Don’t lose the thread in the labyrinth.”</p>
     </header>
 
     <form id="recap-form">

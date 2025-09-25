@@ -1,14 +1,64 @@
+/* ================
+   Responsive Styles
+   ================ */
 
+/* Phones */
 @media (max-width: 600px) {
   .container {
     padding: 1rem;
   }
+
+  header.hero h1 {
+    font-size: 1.8rem;
+  }
+
+  header.hero .subtitle {
+    font-size: 1rem;
+  }
+
+  header.hero .tagline {
+    font-size: 0.9rem;
+  }
+
+  form#recap-form {
+    padding: 1.2rem;
+  }
+
   .actions {
     display: flex;
     flex-direction: column;
   }
+
   .actions > * {
     margin-top: 0.5rem;
     width: 100%;
+  }
+
+  #recap-output {
+    max-height: 50vh;
+  }
+}
+
+/* Tablets */
+@media (max-width: 900px) {
+  .panel {
+    display: block;
+    width: 100%;
+    margin: 0 0 1rem 0;
+  }
+
+  .container {
+    padding: 1.5rem;
+  }
+}
+
+/* Desktops */
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1000px;
+  }
+
+  #recap-output {
+    max-height: 70vh;
   }
 }

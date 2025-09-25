@@ -1,34 +1,183 @@
-/* Light theme (default) */
+/* =======================
+   Ariadne Clew Core Styles
+   ======================= */
+
+/* Variables */
 :root {
   --bg: #ffffff;
-  --panel: #f8f9fa;
+  --panel: rgba(248, 249, 250, 0.9);
   --text: #212529;
   --muted: #6c757d;
-  --accent: #0066cc;
+  --accent: #d4a017; /* gold thread */
   --accent-2: #6f42c1;
+  --accent-glow: rgba(212, 160, 23, 0.5);
   --danger: #dc3545;
-  --border: #dee2e6;
+  --border: rgba(0, 0, 0, 0.1);
   --input-bg: #ffffff;
-  --button-bg: linear-gradient(180deg, #f8f9fa, #e9ecef);
 }
 
-/* Dark theme */
 [data-theme='dark'] {
   --bg: #0f1115;
-  --panel: #151922;
+  --panel: rgba(21, 25, 34, 0.9);
   --text: #e6e7ea;
   --muted: #a6adbb;
-  --accent: #6aa9ff;
-  --accent-2: #9b6aff;
+  --accent: #8f6aff; /* violet thread */
+  --accent-2: #6aa9ff;
+  --accent-glow: rgba(143, 106, 255, 0.5);
   --danger: #ff6a85;
-  --border: #2a2f3a;
+  --border: rgba(255, 255, 255, 0.1);
   --input-bg: #0e121a;
-  --button-bg: linear-gradient(180deg, #1b2230, #141a25);
 }
 
-/* Theme toggle switch */
-.switch {
+/* Base Layout */
+body {
+  margin: 0;
+  font-family: "Poppins", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  background-attachment: fixed;
+  background-size: cover;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Hero Header */
+header.hero {
+  text-align: center;
+  padding: 3rem 1rem 2rem;
   position: relative;
+}
+
+header.hero h1 {
+  font-size: 2.5rem;
+  margin: 0;
+}
+
+header.hero .subtitle {
+  color: var(--muted);
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+}
+
+header.hero .tagline {
+  font-style: italic;
+  color: var(--accent-2);
+  margin-top: 0.5rem;
+}
+
+/* Labyrinth thread line */
+header.hero::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 200px;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-radius: 4px;
+  transform: translateX(-50%);
+  animation: pulseThread 3s infinite alternate;
+}
+
+@keyframes pulseThread {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+/* Form */
+form#recap-form {
+  background: var(--panel);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+label {
+  font-weight: 500;
+}
+
+input[type="text"], input[type="file"] {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  margin-top: 0.5rem;
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+input:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+/* Drop Zone */
+#drop-zone {
+  border: 2px dashed var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  padding: 2rem;
+  text-align: center;
+  border-radius: 12px;
+  margin-top: 1rem;
+  transition: all 0.3s ease;
+}
+
+#drop-zone.highlight {
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+/* Buttons */
+button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 0.6rem 1.2rem;
+  margin: 0.3rem;
+  border-radius: 999px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.3s, box-shadow 0.3s;
+  position: relative;
+}
+
+button:hover {
+  color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+/* Panels */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  box-shadow: 0 0 15px var(--accent-glow);
+  font-family: "Source Code Pro", monospace;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  margin-top: 3rem;
+  padding: 1.5rem 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+/* Theme Toggle */
+.switch {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -46,14 +195,15 @@
   cursor: pointer;
   width: 50px;
   height: 24px;
-  background-color: var(--muted);
+  background-color: var(--border);
   border-radius: 24px;
   transition: background-color 0.3s;
+  box-shadow: 0 0 6px var(--accent-glow);
 }
 
 .slider:before {
-  position: absolute;
   content: "";
+  position: absolute;
   height: 18px;
   width: 18px;
   left: 3px;
@@ -69,71 +219,4 @@ input:checked + .slider {
 
 input:checked + .slider:before {
   transform: translateX(26px);
-}
-
-/* Update existing elements to use theme variables */
-body {
-  background: var(--bg);
-  color: var(--text);
-}
-
-input[type="text"] {
-  border: 1px solid var(--border);
-  background: var(--input-bg);
-  color: var(--text);
-}
-
-button {
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--text);
-}
-
-button:hover {
-  border-color: var(--accent);
-}
-
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  padding: 1rem;
-  border-radius: 6px;
-  margin-top: 1rem;
-}
-
-fieldset {
-  border: 1px solid var(--border);
-}
-
-#drop-zone {
-  border: 2px dashed var(--border);
-  background: var(--panel);
-  color: var(--muted);
-  padding: 2rem;
-  text-align: center;
-  border-radius: var(--radius);
-  margin-top: 1rem;
-  transition: all 0.3s ease;
-}
-
-#drop-zone.highlight {
-  border-color: var(--accent);
-  background: var(--bg);
-  color: var(--accent);
-}
-
-/* Responsive layout for output panels */
-.panel {
-  display: inline-block;
-  width: 48%;
-  vertical-align: top;
-  margin: 1%;
-}
-
-@media (max-width: 768px) {
-  .panel {
-    display: block;
-    width: 100%;
-    margin: 0 0 1rem 0;
-  }
 }
