@@ -81,7 +81,7 @@ def load_prompts() -> str:
 
 
 def classify_with_bedrock(prompt: str) -> List[Dict[str, Any]]:
-    """Call Bedrock Claude model to classify chat log into blocks."""
+    """Call Bedrock Claude model to classify chat log into code/text blocks."""
     if bedrock is None:
         logger.warning("Bedrock not initialized; returning raw text block.")
         return [{"type": "text", "content": prompt}]
@@ -105,18 +105,27 @@ def classify_with_bedrock(prompt: str) -> List[Dict[str, Any]]:
         )
         payload: Any = json.loads(resp["body"].read().decode("utf-8"))
 
-        # TODO: Implement structured parsing instead of always text
-        if isinstance(payload, dict) and "content" in payload:
-            content_list = payload["content"]
-            if isinstance(content_list, list) and len(content_list) > 0:
-                response_text = content_list[0].get("text", "")
-                return [{"content": response_text, "type": "text"}]
+        if not isinstance(payload, dict) or "content" not in payload:
+            logger.warning("Unexpected Bedrock response format")
+            return [{"type": "text", "content": prompt}]
 
-        logger.warning("Unexpected Bedrock response format")
-        return []
+        response_text = payload["content"][0].get("text", "")
+
+        # 🔑 Harden: split into code vs text blocks
+        blocks: List[Dict[str, Any]] = []
+        parts = response_text.split("```")
+        for i, part in enumerate(parts):
+            if i % 2 == 0:
+                if part.strip():
+                    blocks.append({"type": "text", "content": part.strip()})
+            else:
+                blocks.append({"type": "code", "content": part.strip()})
+
+        return blocks or [{"type": "text", "content": response_text}]
+
     except Exception as e:
         logger.error(f"Bedrock classification failed: {e}")
-        raise RuntimeError("Classification step failed.") from e
+        return [{"type": "text", "content": prompt}]
 
 
 def create_recap_from_log(chat_log: str) -> Dict[str, Any]:
