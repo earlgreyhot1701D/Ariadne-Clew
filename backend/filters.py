@@ -17,9 +17,9 @@ def enforce_size_limit(text: str) -> None:
 
 
 def contains_deny_terms(text: str) -> bool:
-    """Return True if text contains any deny-listed term."""
-    lowered = text.lower()
-    return any(term in lowered for term in DENY_TERMS)
+    """Return True if text contains any deny-listed term (case-insensitive)."""
+    lowered_text = text.lower()
+    return any(term.lower() in lowered_text for term in DENY_TERMS)
 
 
 def scrub_pii(text: str) -> str:

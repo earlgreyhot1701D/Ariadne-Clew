@@ -41,7 +41,29 @@ async function handleRecapRequest(chatLog) {
     enableElement('copy-btn');
     enableElement('export-md');
   } catch (error) {
-    setStatus(`Error: ${error.message}`, true);
+    // Provide specific error messages based on error type
+    let errorMessage;
+
+    if (error.message.includes('Failed to fetch')) {
+      errorMessage = 'Connection failed. Make sure the API server is running on port 5000.';
+    } else if (error.message.includes('Invalid request format')) {
+      errorMessage = 'Request validation failed. Please check your input format.';
+    } else if (error.message.includes('Input too large')) {
+      errorMessage = 'Input exceeds size limit. Please reduce the chat log length.';
+    } else if (error.message.includes('unsafe terms')) {
+      errorMessage = 'Input contains prohibited content. Please review and modify your text.';
+    } else if (error.message.includes('HTTP 400')) {
+      errorMessage = 'Request error. Please check your input and try again.';
+    } else if (error.message.includes('HTTP 500')) {
+      errorMessage = 'Server error. The classification service may be unavailable.';
+    } else if (error.message.includes('HTTP 415')) {
+      errorMessage = 'Content type error. This should not happen - please report this issue.';
+    } else {
+      // Fallback for unexpected errors
+      errorMessage = `Unexpected error: ${error.message}`;
+    }
+
+    setStatus(errorMessage, true);
     outputEl.innerHTML = '';
     currentRecapData = null;
   } finally {
