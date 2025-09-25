@@ -1,4 +1,4 @@
-import { getRecap } from './api.js';
+import { getRecap } from './api_js.js';
 import { setStatus } from './utils.js';
 import {
   getElement,

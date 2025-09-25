@@ -1,7 +1,7 @@
-const API_BASE_URL = 'http://localhost:5001';
+const API_BASE_URL = 'http://localhost:5000';
 
 export async function getRecap(chatLog) {
-  const response = await fetch(`${API_BASE_URL}/recap`, {
+  const response = await fetch(`${API_BASE_URL}/v1/recap`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
