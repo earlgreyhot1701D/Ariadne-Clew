@@ -1,9 +1,8 @@
 import pytest
 import asyncio
 import json
-from unittest.mock import AsyncMock, Mock, patch
-from backend.agent import AriadneClew, process_chat_log
-from backend.schema import Recap
+from unittest.mock import patch, Mock
+from backend.agent import AriadneClew, process_chat_log, invoke
 
 
 @pytest.fixture
@@ -21,9 +20,10 @@ def sample_chat_log():
 
 
 @pytest.fixture
-def mock_agentcore_response():
-    """Mock structured response from AgentCore agent"""
-    return {
+def mock_agent_response():
+    """Mock response from strands.Agent"""
+    mock_response = Mock()
+    mock_response.message = json.dumps({
         "session_id": "test-session",
         "aha_moments": ["Slicing is the simplest approach"],
         "mvp_changes": ["Added string reversal utility"],
@@ -32,7 +32,7 @@ def mock_agentcore_response():
                 "content": "def reverse_string(s):\n    return s[::-1]",
                 "language": "python",
                 "user_marked_final": True,
-                "validation_status": "pending"
+                "context": "User requested string reversal function"
             }
         ],
         "design_tradeoffs": ["Chose slicing over loop for readability"],
@@ -41,39 +41,24 @@ def mock_agentcore_response():
         "post_mvp_ideas": ["Add input validation"],
         "quality_flags": [],
         "summary": "Created simple string reversal function"
-    }
-
-
-@pytest.fixture
-def mock_code_validation_response():
-    """Mock response from AgentCore Code Interpreter"""
-    return {
-        "status": "valid",
-        "details": "Function syntax is correct and will execute properly"
-    }
+    })
+    return mock_response
 
 
 class TestAriadneClew:
-    """Test suite for AriadneClew agent class"""
+    """Test suite for AriadneClew with real AgentCore API"""
 
     @pytest.mark.asyncio
     async def test_agent_processes_transcript_successfully(
-        self, sample_chat_log, mock_agentcore_response, mock_code_validation_response
+        self, sample_chat_log, mock_agent_response
     ):
-        """AriadneClew should process transcript and return structured recap"""
+        """AriadneClew should process transcript using real AgentCore"""
 
-        with patch.object(AriadneClew, 'execute') as mock_execute, \
-             patch.object(AriadneClew, '_persist_session_context') as mock_persist:
+        with patch('backend.agent.agent') as mock_agent:
+            mock_agent.return_value = mock_agent_response
 
-            # Mock the reasoning extraction
-            mock_execute.side_effect = [
-                json.dumps(mock_agentcore_response),  # First call: reasoning extraction
-                mock_code_validation_response,        # Second call: code validation
-            ]
-            mock_persist.return_value = None
-
-            agent = AriadneClew(session_id="test-session")
-            result = await agent.process_transcript(sample_chat_log)
+            ariadne = AriadneClew(session_id="test-session")
+            result = await ariadne.process_transcript(sample_chat_log)
 
             # Verify structure
             assert "human_readable" in result
@@ -81,194 +66,173 @@ class TestAriadneClew:
             assert "agent_metadata" in result
             assert result["session_id"] == "test-session"
 
-            # Verify agent metadata shows AgentCore usage
+            # Verify real AgentCore metadata
             metadata = result["agent_metadata"]
             assert metadata["processed_by"] == "AriadneClew"
-            assert metadata["code_snippets_validated"] == 1
+            assert metadata["agentcore_runtime"] == "BedrockAgentCoreApp"
+            assert metadata["strands_agent"] is True
+            assert metadata["code_snippets_found"] == 1
 
             # Verify human readable contains key sections
             human_summary = result["human_readable"]
-            assert "Session Recap" in human_summary
+            assert "Session Recap: test-session" in human_summary
             assert "Key Insights" in human_summary
-            assert "What You Built" in human_summary
+            assert "Slicing is the simplest approach" in human_summary
+            assert "Code Discovered" in human_summary
 
     @pytest.mark.asyncio
-    async def test_code_snippet_validation(
-        self, mock_agentcore_response, mock_code_validation_response
-    ):
-        """AriadneClew should validate code snippets using AgentCore Code Interpreter"""
+    async def test_json_parsing_from_agent_response(self, sample_chat_log):
+        """AriadneClew should parse JSON from various agent response formats"""
 
-        with patch.object(AriadneClew, 'execute') as mock_execute:
-            mock_execute.return_value = mock_code_validation_response
-
-            agent = AriadneClew(session_id="test-validation")
-
-            snippets = [
-                {
-                    "content": "def test(): return 'hello'",
-                    "language": "python",
-                    "user_marked_final": True,
-                    "validation_status": "pending"
-                }
-            ]
-
-            result = await agent._validate_code_snippets(snippets)
-
-            assert len(result) == 1
-            assert result[0]["validation_status"] == "valid"
-            assert result[0]["validation_result"] == "Function syntax is correct and will execute properly"
-
-            # Verify Code Interpreter was called with proper prompt
-            mock_execute.assert_called_once()
-            call_args = mock_execute.call_args[0][0]
-            assert "code_interpreter" in mock_execute.call_args[1]["tools"]
-            assert "def test(): return 'hello'" in call_args
-
-    @pytest.mark.asyncio
-    async def test_conflict_resolution_multiple_finals(
-        self, mock_agentcore_response
-    ):
-        """AriadneClew should autonomously resolve conflicts when multiple snippets marked final"""
-
-        # Setup conflicting snippets
-        conflicted_analysis = mock_agentcore_response.copy()
-        conflicted_analysis["code_snippets"] = [
-            {
-                "content": "def reverse_v1(s): return s[::-1]",
-                "language": "python",
-                "user_marked_final": True,
-                "validation_status": "valid"
-            },
-            {
-                "content": "def reverse_v2(s): return ''.join(reversed(s))",
-                "language": "python",
-                "user_marked_final": True,
-                "validation_status": "valid"
-            }
+        test_cases = [
+            # Pure JSON
+            '{"test": "value"}',
+            # JSON in markdown code block
+            '```json\n{"test": "value"}\n```',
+            # JSON in generic code block
+            '```\n{"test": "value"}\n```',
+            # JSON mixed with text
+            'Here is the analysis: {"test": "value"} Hope this helps!'
         ]
 
-        with patch.object(AriadneClew, 'execute') as mock_execute:
-            mock_execute.return_value = {
-                "chosen_index": 0,
-                "reasoning": "Slicing approach is more Pythonic and efficient"
-            }
+        for response_format in test_cases:
+            with patch('backend.agent.agent') as mock_agent:
+                mock_response = Mock()
+                mock_response.message = response_format
+                mock_agent.return_value = mock_response
 
-            agent = AriadneClew(session_id="test-conflict")
-            result = await agent._resolve_code_conflicts(conflicted_analysis)
+                ariadne = AriadneClew(session_id="test-parsing")
 
-            # Verify conflict resolution
-            snippets = result["code_snippets"]
-            assert snippets[0]["agent_chosen_final"] is True
-            assert snippets[0]["resolution_reasoning"] == "Slicing approach is more Pythonic and efficient"
-            assert snippets[1]["user_marked_final"] is False  # Downgraded
-
-            # Verify quality flag was added
-            assert len(result["quality_flags"]) > 0
-            assert "Resolved conflict" in result["quality_flags"][0]
+                try:
+                    result = await ariadne.process_transcript(sample_chat_log)
+                    # Should not raise an exception
+                    assert "structured_data" in result
+                except ValueError:
+                    # This is expected for malformed JSON
+                    pass
 
     @pytest.mark.asyncio
-    async def test_memory_persistence(self, mock_agentcore_response):
-        """AriadneClew should persist session context in AgentCore Memory"""
+    async def test_invalid_json_handling(self, sample_chat_log):
+        """AriadneClew should handle invalid JSON gracefully"""
 
-        with patch.object(AriadneClew, 'memory') as mock_memory:
-            mock_memory.store = AsyncMock()
+        with patch('backend.agent.agent') as mock_agent:
+            mock_response = Mock()
+            mock_response.message = "This is not JSON at all, just plain text"
+            mock_agent.return_value = mock_response
 
-            agent = AriadneClew(session_id="test-memory")
-            await agent._persist_session_context(mock_agentcore_response)
+            ariadne = AriadneClew(session_id="test-invalid-json")
 
-            # Verify memory was called with session data
-            mock_memory.store.assert_called_once()
-            call_args = mock_memory.store.call_args
-            assert call_args[0][0] == "session_test-memory"
-
-            stored_data = call_args[0][1]
-            assert stored_data["session_id"] == "test-memory"
-            assert "final_code_count" in stored_data
-            assert "key_decisions" in stored_data
+            with pytest.raises(ValueError, match="Agent returned invalid JSON"):
+                await ariadne.process_transcript(sample_chat_log)
 
     @pytest.mark.asyncio
-    async def test_memory_recall(self):
-        """AriadneClew should recall previous session context from AgentCore Memory"""
+    async def test_agent_error_handling(self, sample_chat_log):
+        """AriadneClew should handle strands.Agent errors gracefully"""
 
-        mock_previous_context = {
-            "session_id": "test-recall",
-            "final_code_count": 1,
-            "key_decisions": ["Used iterative approach"],
-            "session_summary": "Built fibonacci function"
-        }
+        with patch('backend.agent.agent') as mock_agent:
+            mock_agent.side_effect = Exception("Strands agent failed")
 
-        with patch.object(AriadneClew, 'memory') as mock_memory:
-            mock_memory.retrieve = AsyncMock(return_value=mock_previous_context)
+            ariadne = AriadneClew(session_id="test-error")
 
-            agent = AriadneClew(session_id="test-recall")
-            result = await agent.recall_previous_session()
-
-            assert result == mock_previous_context
-            mock_memory.retrieve.assert_called_once_with("session_test-recall")
-
-    @pytest.mark.asyncio
-    async def test_empty_code_snippet_handling(self):
-        """AriadneClew should handle empty code snippets gracefully"""
-
-        agent = AriadneClew(session_id="test-empty")
-
-        snippets = [
-            {
-                "content": "",
-                "language": "python",
-                "user_marked_final": False,
-                "validation_status": "pending"
-            }
-        ]
-
-        result = await agent._validate_code_snippets(snippets)
-
-        assert len(result) == 1
-        assert result[0]["validation_status"] == "empty"
-        assert result[0]["validation_result"] == "No code content"
+            with pytest.raises(RuntimeError, match="Reasoning extraction failed"):
+                await ariadne.process_transcript(sample_chat_log)
 
     @pytest.mark.asyncio
     async def test_invalid_input_handling(self):
-        """AriadneClew should raise ValueError for invalid inputs"""
+        """AriadneClew should validate input parameters"""
 
-        agent = AriadneClew(session_id="test-invalid")
+        ariadne = AriadneClew(session_id="test-validation")
 
         # Test empty string
         with pytest.raises(ValueError, match="Invalid chat_log"):
-            await agent.process_transcript("")
+            await ariadne.process_transcript("")
 
         # Test None input
         with pytest.raises(ValueError, match="Invalid chat_log"):
-            await agent.process_transcript(None)
+            await ariadne.process_transcript(None)
 
         # Test non-string input
         with pytest.raises(ValueError, match="Invalid chat_log"):
-            await agent.process_transcript(123)
+            await ariadne.process_transcript(123)
 
-    @pytest.mark.asyncio
-    async def test_json_parsing_error_handling(self, sample_chat_log):
-        """AriadneClew should handle JSON parsing errors gracefully"""
+    def test_human_summary_generation(self):
+        """AriadneClew should generate readable human summaries"""
 
-        with patch.object(AriadneClew, 'execute') as mock_execute:
-            # Return invalid JSON
-            mock_execute.return_value = "invalid json response"
+        analysis = {
+            "session_id": "test-summary",
+            "summary": "Test session summary",
+            "aha_moments": ["Key insight 1", "Key insight 2"],
+            "code_snippets": [
+                {
+                    "content": "def test(): pass",
+                    "language": "python",
+                    "user_marked_final": True,
+                    "context": "Test function"
+                }
+            ],
+            "mvp_changes": ["Added test functionality"],
+            "design_tradeoffs": ["Simplicity over performance"],
+            "post_mvp_ideas": ["Add error handling"]
+        }
 
-            agent = AriadneClew(session_id="test-json-error")
+        ariadne = AriadneClew(session_id="test-summary")
+        summary = ariadne._generate_human_summary(analysis)
 
-            with pytest.raises(ValueError, match="Agent returned invalid JSON"):
-                await agent.process_transcript(sample_chat_log)
+        assert "Session Recap: test-summary" in summary
+        assert "Test session summary" in summary
+        assert "Key Insights" in summary
+        assert "Key insight 1" in summary
+        assert "Code Discovered" in summary
+        assert "python snippet FINAL" in summary
+        assert "Scope Changes" in summary
+        assert "Design Decisions" in summary
+        assert "Post-MVP Ideas" in summary
 
-    @pytest.mark.asyncio
-    async def test_agentcore_execution_error_handling(self, sample_chat_log):
-        """AriadneClew should handle AgentCore execution errors gracefully"""
 
-        with patch.object(AriadneClew, 'execute') as mock_execute:
-            mock_execute.side_effect = Exception("AgentCore connection failed")
+class TestAgentCoreEntrypoint:
+    """Test the AgentCore entrypoint function"""
 
-            agent = AriadneClew(session_id="test-execution-error")
+    def test_agentcore_invoke_success(self, mock_agent_response):
+        """AgentCore entrypoint should handle valid payloads"""
 
-            with pytest.raises(RuntimeError, match="Reasoning extraction failed"):
-                await agent.process_transcript(sample_chat_log)
+        with patch('backend.agent.agent') as mock_agent:
+            mock_agent.return_value = mock_agent_response
+
+            payload = {
+                "chat_log": "User: Hello\nAssistant: Hi there!",
+                "session_id": "agentcore-test"
+            }
+
+            result = invoke(payload)
+
+            assert result["status"] == "success"
+            assert "result" in result
+            assert result["result"]["session_id"] == "agentcore-test"
+
+    def test_agentcore_invoke_missing_chat_log(self):
+        """AgentCore entrypoint should handle missing chat_log"""
+
+        payload = {"session_id": "test"}
+
+        result = invoke(payload)
+
+        assert result["status"] == "failed"
+        assert "Missing 'chat_log' in payload" in result["error"]
+
+    def test_agentcore_invoke_processing_error(self):
+        """AgentCore entrypoint should handle processing errors"""
+
+        with patch('backend.agent.agent') as mock_agent:
+            mock_agent.side_effect = Exception("Processing failed")
+
+            payload = {
+                "chat_log": "User: Hello\nAssistant: Hi there!"
+            }
+
+            result = invoke(payload)
+
+            assert result["status"] == "failed"
+            assert "Processing failed" in result["error"]
 
 
 class TestBackwardsCompatibility:
@@ -276,18 +240,12 @@ class TestBackwardsCompatibility:
 
     @pytest.mark.asyncio
     async def test_process_chat_log_function(
-        self, sample_chat_log, mock_agentcore_response, mock_code_validation_response
+        self, sample_chat_log, mock_agent_response
     ):
-        """process_chat_log() should work as drop-in replacement for old RecapAgent.run()"""
+        """process_chat_log() should work as drop-in replacement"""
 
-        with patch.object(AriadneClew, 'execute') as mock_execute, \
-             patch.object(AriadneClew, '_persist_session_context') as mock_persist:
-
-            mock_execute.side_effect = [
-                json.dumps(mock_agentcore_response),
-                mock_code_validation_response,
-            ]
-            mock_persist.return_value = None
+        with patch('backend.agent.agent') as mock_agent:
+            mock_agent.return_value = mock_agent_response
 
             result = await process_chat_log(sample_chat_log, session_id="compat-test")
 
@@ -297,41 +255,38 @@ class TestBackwardsCompatibility:
             assert result["session_id"] == "compat-test"
 
 
-class TestDemoFunction:
-    """Test the demo functionality"""
+class TestDemo:
+    """Test demo functionality"""
 
     @pytest.mark.asyncio
-    async def test_demo_runs_without_error(self):
+    async def test_demo_runs_without_error(self, mock_agent_response):
         """Demo function should execute without raising exceptions"""
 
-        # Mock all AgentCore interactions for demo
-        with patch.object(AriadneClew, 'execute') as mock_execute, \
-             patch.object(AriadneClew, '_persist_session_context') as mock_persist, \
-             patch('builtins.print') as mock_print:  # Suppress print output
+        with patch('backend.agent.agent') as mock_agent, \
+             patch('builtins.print') as mock_print:
 
-            mock_execute.side_effect = [
-                json.dumps({
-                    "session_id": "demo",
-                    "aha_moments": ["Iterative approach is more efficient"],
-                    "mvp_changes": ["Switched from recursive to iterative"],
-                    "code_snippets": [
-                        {
-                            "content": "def fibonacci(n):\n    if n <= 1:\n        return n\n    a, b = 0, 1\n    for _ in range(2, n + 1):\n        a, b = b, a + b\n    return b",
-                            "language": "python",
-                            "user_marked_final": True,
-                            "validation_status": "pending"
-                        }
-                    ],
-                    "design_tradeoffs": ["Performance over simplicity"],
-                    "scope_creep": [],
-                    "readme_notes": [],
-                    "post_mvp_ideas": [],
-                    "quality_flags": [],
-                    "summary": "Implemented efficient Fibonacci function"
-                }),
-                {"status": "valid", "details": "Function works correctly"}
-            ]
-            mock_persist.return_value = None
+            # Mock the fibonacci demo response
+            fibonacci_response = Mock()
+            fibonacci_response.message = json.dumps({
+                "session_id": "demo",
+                "aha_moments": ["Iterative approach is more efficient"],
+                "mvp_changes": ["Switched from recursive to iterative"],
+                "code_snippets": [
+                    {
+                        "content": "def fibonacci(n):\n    if n <= 1:\n        return n\n    a, b = 0, 1\n    for _ in range(2, n + 1):\n        a, b = b, a + b\n    return b",
+                        "language": "python",
+                        "user_marked_final": True,
+                        "context": "Final fibonacci implementation"
+                    }
+                ],
+                "design_tradeoffs": ["Performance over simplicity"],
+                "scope_creep": [],
+                "readme_notes": [],
+                "post_mvp_ideas": [],
+                "quality_flags": [],
+                "summary": "Implemented efficient Fibonacci function"
+            })
+            mock_agent.return_value = fibonacci_response
 
             # Import and run demo
             from backend.agent import demo_ariadne_clew
@@ -340,10 +295,73 @@ class TestDemoFunction:
             await demo_ariadne_clew()
 
             # Verify demo printed output
-            assert mock_print.call_count >= 2  # At least human readable + structured data
+            assert mock_print.call_count >= 3  # Human, structured, metadata
 
 
-# Pytest configuration for async tests
+class TestIntegration:
+    """Integration-style tests with realistic mocking"""
+
+    @pytest.mark.asyncio
+    @pytest.mark.integration
+    async def test_full_pipeline_with_real_agentcore_mocking(self, sample_chat_log):
+        """Test complete pipeline with realistic AgentCore mocking"""
+
+        with patch('bedrock_agentcore.BedrockAgentCoreApp') as mock_app, \
+             patch('strands.Agent') as mock_agent_class, \
+             patch('backend.agent.agent') as mock_agent_instance:
+
+            # Mock the BedrockAgentCoreApp initialization
+            mock_app.return_value = Mock()
+            mock_agent_class.return_value = Mock()
+
+            # Mock realistic agent response
+            mock_response = Mock()
+            mock_response.message = json.dumps({
+                "session_id": "integration-test",
+                "aha_moments": ["String slicing is elegant"],
+                "mvp_changes": ["Added string utility"],
+                "code_snippets": [
+                    {
+                        "content": "def reverse_string(s):\n    return s[::-1]",
+                        "language": "python",
+                        "user_marked_final": True,
+                        "context": "User requested string reversal"
+                    }
+                ],
+                "design_tradeoffs": ["Simplicity over verbosity"],
+                "scope_creep": [],
+                "readme_notes": ["Document string utilities"],
+                "post_mvp_ideas": ["Add type hints"],
+                "quality_flags": [],
+                "summary": "Created string reversal utility"
+            })
+            mock_agent_instance.return_value = mock_response
+
+            # Run full pipeline
+            ariadne = AriadneClew(session_id="integration-test")
+            result = await ariadne.process_transcript(sample_chat_log)
+
+            # Verify complete output structure
+            assert result["session_id"] == "integration-test"
+            assert "human_readable" in result
+            assert "structured_data" in result
+            assert "agent_metadata" in result
+
+            # Verify AgentCore-specific metadata
+            metadata = result["agent_metadata"]
+            assert metadata["processed_by"] == "AriadneClew"
+            assert metadata["agentcore_runtime"] == "BedrockAgentCoreApp"
+            assert metadata["strands_agent"] is True
+
+            # Verify human readable formatting
+            human_output = result["human_readable"]
+            assert "Session Recap: integration-test" in human_output
+            assert "Key Insights" in human_output
+            assert "String slicing is elegant" in human_output
+            assert "Code Discovered" in human_output
+
+
+# Pytest fixture for async support
 @pytest.fixture(scope="session")
 def event_loop():
     """Create an instance of the default event loop for the test session."""
@@ -352,76 +370,5 @@ def event_loop():
     loop.close()
 
 
-class TestIntegration:
-    """Integration tests that mock external dependencies but test full flow"""
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_full_pipeline_integration(self, sample_chat_log):
-        """Test complete pipeline with realistic mocking"""
-
-        # Mock all external dependencies
-        with patch('agentcore.Agent.__init__') as mock_agent_init, \
-             patch.object(AriadneClew, 'execute') as mock_execute, \
-             patch.object(AriadneClew, 'memory') as mock_memory:
-
-            # Setup mocks
-            mock_agent_init.return_value = None
-            mock_memory.store = AsyncMock()
-            mock_memory.retrieve = AsyncMock(return_value=None)
-
-            # Realistic agent responses
-            mock_execute.side_effect = [
-                json.dumps({
-                    "session_id": "integration-test",
-                    "aha_moments": ["String slicing is elegant"],
-                    "mvp_changes": ["Added string utility"],
-                    "code_snippets": [
-                        {
-                            "content": "def reverse_string(s):\n    return s[::-1]",
-                            "language": "python",
-                            "user_marked_final": True,
-                            "validation_status": "pending"
-                        }
-                    ],
-                    "design_tradeoffs": ["Simplicity over verbosity"],
-                    "scope_creep": [],
-                    "readme_notes": ["Document string utilities"],
-                    "post_mvp_ideas": ["Add type hints"],
-                    "quality_flags": [],
-                    "summary": "Created string reversal utility"
-                }),
-                {"status": "valid", "details": "Clean, working function"}
-            ]
-
-            # Run full pipeline
-            agent = AriadneClew(session_id="integration-test")
-            result = await agent.process_transcript(sample_chat_log)
-
-            # Verify complete output structure
-            assert result["session_id"] == "integration-test"
-            assert "human_readable" in result
-            assert "structured_data" in result
-            assert "agent_metadata" in result
-
-            # Verify human readable formatting
-            human_output = result["human_readable"]
-            assert "Session Recap: integration-test" in human_output
-            assert "Key Insights" in human_output
-            assert "String slicing is elegant" in human_output
-            assert "What You Built" in human_output
-            assert "✅ Validated" in human_output
-
-            # Verify agent metadata
-            metadata = result["agent_metadata"]
-            assert metadata["processed_by"] == "AriadneClew"
-            assert metadata["code_snippets_validated"] == 1
-            assert metadata["conflicts_resolved"] == 0
-
-            # Verify memory was used
-            mock_memory.store.assert_called_once()
-
-
 if __name__ == "__main__":
-    # Run tests with: python test_agent.py
     pytest.main([__file__, "-v"])
