@@ -2,7 +2,7 @@ import pytest
 import asyncio
 import json
 from unittest.mock import AsyncMock, Mock, patch
-from agent import AriadneClew, process_chat_log
+from backend.agent import AriadneClew, process_chat_log
 from backend.schema import Recap
 
 
@@ -334,7 +334,7 @@ class TestDemoFunction:
             mock_persist.return_value = None
 
             # Import and run demo
-            from agent import demo_ariadne_clew
+            from backend.agent import demo_ariadne_clew
 
             # Should not raise any exceptions
             await demo_ariadne_clew()
