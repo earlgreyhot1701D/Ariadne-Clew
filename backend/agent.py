@@ -62,8 +62,8 @@ class AriadneClew:
             # This calls the actual AgentCore/Bedrock integration
             result = self.agent(reasoning_prompt)
 
-            # Parse the agent response
-            analysis = self._parse_agent_response(result.message)
+            # Handle different response formats from strands.Agent
+            analysis = self._extract_analysis_from_result(result)
             analysis["session_id"] = self.session_id
 
             # Format for demo
@@ -90,7 +90,13 @@ class AriadneClew:
         try:
             reasoning_prompt = self._build_reasoning_prompt(chat_log)
             result = self.agent(reasoning_prompt)
-            analysis = self._parse_agent_response(result.message)
+
+            # Log what we actually received for debugging
+            logger.info(f"Strands agent returned type: {type(result)}")
+            logger.info(f"Strands agent returned: {str(result)[:200]}...")
+
+            # Handle different response formats from strands.Agent
+            analysis = self._extract_analysis_from_result(result)
             analysis["session_id"] = self.session_id
             recap = self._format_for_demo(analysis)
 
@@ -100,6 +106,59 @@ class AriadneClew:
         except Exception as e:
             logger.error(f"AriadneClew processing failed: {e}")
             raise RuntimeError(f"Reasoning extraction failed: {str(e)}")
+
+    def _extract_analysis_from_result(self, result) -> Dict[str, Any]:
+        """
+        Extract structured analysis from strands.Agent result
+
+        Handles different possible return formats from the agent
+        """
+        try:
+            # Case 1: Result has a message attribute (string)
+            if hasattr(result, 'message'):
+                response_text = result.message
+                return self._parse_agent_response(response_text)
+
+            # Case 2: Result is already a dict with the data we need
+            elif isinstance(result, dict):
+                # If it looks like our expected structure, use it directly
+                if "aha_moments" in result or "code_snippets" in result:
+                    return result
+
+                # If it has a message key, parse that
+                elif "message" in result:
+                    return self._parse_agent_response(result["message"])
+
+                # If it's some other dict, try to convert to string and parse
+                else:
+                    return self._parse_agent_response(str(result))
+
+            # Case 3: Result is a string response
+            elif isinstance(result, str):
+                return self._parse_agent_response(result)
+
+            # Case 4: Unknown format - convert to string and try to parse
+            else:
+                logger.warning(f"Unknown result format: {type(result)}, converting to string")
+                return self._parse_agent_response(str(result))
+
+        except Exception as e:
+            logger.error(f"Failed to extract analysis from result: {e}")
+            logger.error(f"Result was: {result}")
+
+            # Return a minimal valid structure so the agent doesn't crash completely
+            return {
+                "session_id": self.session_id,
+                "aha_moments": ["Error processing agent response"],
+                "mvp_changes": [],
+                "code_snippets": [],
+                "design_tradeoffs": [],
+                "scope_creep": [],
+                "readme_notes": [],
+                "post_mvp_ideas": [],
+                "quality_flags": [f"Agent response parsing failed: {str(e)}"],
+                "summary": "Unable to process agent response properly"
+            }
 
     def _build_reasoning_prompt(self, chat_log: str) -> str:
         """Build the reasoning extraction prompt for AgentCore"""
@@ -147,34 +206,41 @@ class AriadneClew:
     def _parse_agent_response(self, response: str) -> Dict[str, Any]:
         """Parse the agent response into structured data"""
         try:
+            # Handle case where response might already be a dict converted to string
+            if isinstance(response, dict):
+                return response
+
+            # Convert to string if it isn't already
+            response_str = str(response)
+
             # Try to parse as JSON
-            if response.startswith('{') and response.endswith('}'):
-                return json.loads(response)
+            if response_str.strip().startswith('{') and response_str.strip().endswith('}'):
+                return json.loads(response_str)
 
             # Try to extract JSON from markdown code blocks
-            if '```json' in response:
-                start = response.find('```json') + 7
-                end = response.find('```', start)
+            if '```json' in response_str:
+                start = response_str.find('```json') + 7
+                end = response_str.find('```', start)
                 if end != -1:
-                    json_str = response[start:end].strip()
+                    json_str = response_str[start:end].strip()
                     return json.loads(json_str)
 
             # Try to extract JSON from any code block
-            if '```' in response:
-                start = response.find('```') + 3
-                end = response.find('```', start)
+            if '```' in response_str:
+                start = response_str.find('```') + 3
+                end = response_str.find('```', start)
                 if end != -1:
-                    json_str = response[start:end].strip()
+                    json_str = response_str[start:end].strip()
                     # Skip language identifier if present
                     if json_str.startswith('json\n'):
                         json_str = json_str[5:]
                     return json.loads(json_str)
 
             # Fallback: try to find JSON anywhere in response
-            start = response.find('{')
-            end = response.rfind('}') + 1
+            start = response_str.find('{')
+            end = response_str.rfind('}') + 1
             if start != -1 and end > start:
-                json_str = response[start:end]
+                json_str = response_str[start:end]
                 return json.loads(json_str)
 
             raise ValueError("No valid JSON found in agent response")
@@ -182,7 +248,7 @@ class AriadneClew:
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse agent response as JSON: {e}")
             logger.error(f"Agent response was: {response}")
-            raise ValueError("Agent returned invalid JSON - please retry")
+            raise ValueError(f"Agent returned invalid JSON: {str(e)}")
 
     def _format_for_demo(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
         """Format the analysis for demo output"""
@@ -283,19 +349,21 @@ def invoke(payload):
     """
     AWS AgentCore entrypoint for Ariadne Clew.
 
-    Payload should contain:
-    {
-        "chat_log": "transcript text...",
-        "session_id": "optional-session-id"
-    }
+    Handles multiple payload formats for debugging.
     """
     try:
-        chat_log = payload.get("chat_log")
+        # Debug logging to see what AgentCore is sending
+        logger.info(f"Received payload: {payload}")
+
+        # Try different payload formats that AgentCore might send
+        chat_log = payload.get("chat_log") or payload.get("prompt") or payload.get("message")
         session_id = payload.get("session_id", "agentcore-session")
 
         if not chat_log:
+            error_msg = f"Missing chat content in payload. Received keys: {list(payload.keys())}. Full payload: {payload}"
+            logger.error(error_msg)
             return {
-                "error": "Missing 'chat_log' in payload",
+                "error": error_msg,
                 "status": "failed"
             }
 
@@ -311,10 +379,11 @@ def invoke(payload):
         }
 
     except Exception as e:
-        logger.error(f"AgentCore entrypoint failed: {e}")
+        error_msg = f"AgentCore entrypoint failed: {str(e)}"
+        logger.error(error_msg, exc_info=True)
         return {
             "status": "failed",
-            "error": str(e)
+            "error": error_msg
         }
 
 
