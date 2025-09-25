@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import uuid
 
 
@@ -18,3 +18,20 @@ class Recap(BaseModel):
 
     class Config:
         extra = "forbid"
+
+
+def validate_recap_output(data: Dict[str, Any]) -> bool:
+    """Basic schema validator for recap outputs (used in tests)."""
+    required = {"session_id", "final", "rejected_versions", "summary", "aha_moments", "quality_flags"}
+    for field in required:
+        if field not in data:
+            raise ValueError(f"Missing recap field: {field}")
+
+    if not isinstance(data["final"], dict):
+        raise ValueError("Final snippet must be a dict")
+    if not isinstance(data["rejected_versions"], list):
+        raise ValueError("Rejected must be a list")
+    if not isinstance(data["summary"], str):
+        raise ValueError("summary must be a string")
+
+    return True
