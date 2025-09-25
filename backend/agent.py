@@ -22,7 +22,7 @@ from backend.recap_formatter import format_recap
 
 logger = logging.getLogger(__name__)
 
-# Initialize AWS AgentCore app
+# Initialize AWS AgentCore app and agent
 app = BedrockAgentCoreApp()
 agent = Agent()
 
@@ -42,7 +42,7 @@ class AriadneClew:
 
     async def process_transcript(self, chat_log: str) -> Dict[str, Any]:
         """
-        Process chat transcript using AWS AgentCore
+        Process chat transcript using AWS AgentCore (async version)
 
         This uses the real AgentCore runtime to:
         1. Extract reasoning from transcript
@@ -67,6 +67,31 @@ class AriadneClew:
             analysis["session_id"] = self.session_id
 
             # Format for demo
+            recap = self._format_for_demo(analysis)
+
+            logger.info(f"AriadneClew completed processing for session {self.session_id}")
+            return recap
+
+        except Exception as e:
+            logger.error(f"AriadneClew processing failed: {e}")
+            raise RuntimeError(f"Reasoning extraction failed: {str(e)}")
+
+    def _process_transcript_sync(self, chat_log: str) -> Dict[str, Any]:
+        """
+        Synchronous version for AgentCore entrypoint
+
+        Same logic as async version but without await keywords
+        """
+        if not chat_log or not isinstance(chat_log, str):
+            raise ValueError("Invalid chat_log: must be non-empty string")
+
+        logger.info(f"AriadneClew processing transcript for session {self.session_id}")
+
+        try:
+            reasoning_prompt = self._build_reasoning_prompt(chat_log)
+            result = self.agent(reasoning_prompt)
+            analysis = self._parse_agent_response(result.message)
+            analysis["session_id"] = self.session_id
             recap = self._format_for_demo(analysis)
 
             logger.info(f"AriadneClew completed processing for session {self.session_id}")
@@ -167,7 +192,17 @@ class AriadneClew:
 
         # Try to validate with your existing schema
         try:
-            recap_model = Recap.model_validate(analysis)
+            # Create a compatible version for your existing schema
+            schema_compatible = {
+                "session_id": analysis.get("session_id"),
+                "summary": analysis.get("summary", ""),
+                "final": analysis.get("code_snippets", []),
+                "rejected_versions": [],  # Not used in new format
+                "aha_moments": analysis.get("aha_moments", []),
+                "scope_creep": analysis.get("scope_creep", [])
+            }
+
+            recap_model = Recap.model_validate(schema_compatible)
             structured_data = format_recap(recap_model)
         except Exception as e:
             logger.warning(f"Schema validation failed: {e}")
@@ -267,8 +302,7 @@ def invoke(payload):
         # Create AriadneClew instance and process
         ariadne = AriadneClew(session_id=session_id)
 
-        # Note: AgentCore entrypoint is sync, but process_transcript is async
-        # For now, we'll make a sync version
+        # Use sync version for AgentCore entrypoint
         result = ariadne._process_transcript_sync(chat_log)
 
         return {
@@ -282,28 +316,6 @@ def invoke(payload):
             "status": "failed",
             "error": str(e)
         }
-
-    def _process_transcript_sync(self, chat_log: str) -> Dict[str, Any]:
-        """Synchronous version for AgentCore entrypoint"""
-        # Same logic as async version but without await
-        if not chat_log or not isinstance(chat_log, str):
-            raise ValueError("Invalid chat_log: must be non-empty string")
-
-        logger.info(f"AriadneClew processing transcript for session {self.session_id}")
-
-        try:
-            reasoning_prompt = self._build_reasoning_prompt(chat_log)
-            result = self.agent(reasoning_prompt)
-            analysis = self._parse_agent_response(result.message)
-            analysis["session_id"] = self.session_id
-            recap = self._format_for_demo(analysis)
-
-            logger.info(f"AriadneClew completed processing for session {self.session_id}")
-            return recap
-
-        except Exception as e:
-            logger.error(f"AriadneClew processing failed: {e}")
-            raise RuntimeError(f"Reasoning extraction failed: {str(e)}")
 
 
 # Backwards compatibility function

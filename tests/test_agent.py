@@ -183,7 +183,7 @@ class TestAriadneClew:
         assert "Key Insights" in summary
         assert "Key insight 1" in summary
         assert "Code Discovered" in summary
-        assert "python snippet FINAL" in summary
+        assert "**python snippet** FINAL" in summary
         assert "Scope Changes" in summary
         assert "Design Decisions" in summary
         assert "Post-MVP Ideas" in summary
