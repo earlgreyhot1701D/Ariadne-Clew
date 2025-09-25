@@ -1,5 +1,5 @@
 import pytest
-from schema import validate_recap_output
+from backend.schema import Recap, RejectedVersion
 
 VALID_RECAP = {
     "final": {

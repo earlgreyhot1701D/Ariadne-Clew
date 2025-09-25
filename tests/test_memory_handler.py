@@ -1,44 +1,54 @@
 import pytest
-from memory_handler import store_memory, retrieve_memory, summarize_memory
+from backend import memory_handler as mh
 
 
-@pytest.fixture
-def sample_recap():
-    return {
-        "snippets": [
-            {
-                "snippet_id": "abc123",
-                "version": 1,
-                "content": "print('hello')",
-                "diff_summary": "No change",
-            },
-            {
-                "snippet_id": "def456",
-                "version": 2,
-                "content": "print('goodbye')",
-                "diff_summary": "- print('hello')\n+ print('goodbye')",
-            },
-        ]
-    }
+def test_store_and_load_recap(tmp_path, monkeypatch):
+    """Store a recap and read it back; assert file exists and content matches."""
+    key = "test_session"
+    recap_data = {"summary": "unit test"}
+
+    # Override cache directory for test isolation
+    monkeypatch.setattr(mh, "_CACHE_DIR", tmp_path)
+
+    mh.store_recap(key, recap_data)
+    path = mh._key_to_path(key)
+
+    # File should exist and contain JSON
+    assert path.exists() and path.is_file()
+
+    loaded = mh.load_cached_recap(key)
+    assert isinstance(loaded, dict)
+    assert loaded == recap_data
 
 
-def test_store_and_retrieve_memory(sample_recap):
-    session_id = "test-session-1"
-    ref = store_memory(session_id, sample_recap)
-    assert ref == session_id
-    retrieved = retrieve_memory(session_id)
-    assert retrieved == sample_recap
+def test_load_nonexistent_returns_none(tmp_path, monkeypatch):
+    monkeypatch.setattr(mh, "_CACHE_DIR", tmp_path)
+    assert mh.load_cached_recap("no-such-key") is None
 
 
-def test_retrieve_nonexistent_memory():
-    assert retrieve_memory("nonexistent-session") is None
+def test_invalid_json_returns_none(tmp_path, monkeypatch):
+    """If file exists but contains invalid JSON, loader should return None."""
+    monkeypatch.setattr(mh, "_CACHE_DIR", tmp_path)
+    path = mh._key_to_path("badjson")
+    path.write_text("this is not json", encoding="utf-8")
+
+    assert mh.load_cached_recap("badjson") is None
 
 
-def test_summarize_memory_with_data(sample_recap):
-    summary = summarize_memory(sample_recap)
-    assert "final snippet (v2)" in summary
+def test_key_sanitization_and_unicode(tmp_path, monkeypatch):
+    """Keys with unsafe chars should be sanitized; Unicode must persist through roundtrip."""
+    monkeypatch.setattr(mh, "_CACHE_DIR", tmp_path)
 
+    key = "weird/key: name*?"
+    recap = {"msg": "café ☕️"}
 
-def test_summarize_memory_empty():
-    assert "No memory found" in summarize_memory({})
-    assert "No memory found" in summarize_memory(None)
+    mh.store_recap(key, recap)
+    path = mh._key_to_path(key)
+
+    # Ensure sanitized filename produced
+    assert path.name == "weird_key__name__.json"
+    assert path.exists()
+
+    loaded = mh.load_cached_recap(key)
+    assert loaded == recap
+
