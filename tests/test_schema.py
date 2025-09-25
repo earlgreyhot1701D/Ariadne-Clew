@@ -1,52 +1,52 @@
 import pytest
-from backend.schema import Recap, RejectedVersion, validate_recap_output
-
-VALID_RECAP = {
-    "session_id": "test-session-123",
-    "final": {
-        "version": 2,
-        "snippet_id": "snippet_2",
-        "content": "print('Hello World')"
-    },
-    "rejected_versions": [
-        {
-            "code": "print('Hello')",
-            "reason": "Incomplete implementation"
-        }
-    ],
-    "summary": "This is the final summary.",
-    "aha_moments": ["Realized the importance of proper output formatting"],
-    "quality_flags": ["Well-structured session", "Clear progression"]
-}
+from pydantic import ValidationError
+from backend.schema import Recap, EnrichedSnippet
 
 
-def test_valid_recap_output():
-    assert validate_recap_output(VALID_RECAP) is True
+def make_valid_recap():
+    final = EnrichedSnippet(
+        version=1,
+        snippet_id="snippet_1",
+        content="print('Hello World')",
+        diff_summary="ok",
+        validation={"status": "valid"},
+    )
+    return Recap(
+        session_id="test-session-123",
+        final=final,
+        rejected_versions=[
+            EnrichedSnippet(
+                version=2,
+                snippet_id="snippet_2",
+                content="print('bad')",
+                diff_summary="removed",
+                validation={"status": "invalid", "reason": "test reason"},
+            )
+        ],
+        summary="This is the final summary.",
+        aha_moments=["aha"],
+        quality_flags=["flag"],
+    )
 
 
-def test_missing_recap_field():
-    invalid = VALID_RECAP.copy()
-    del invalid["aha_moments"]
-    with pytest.raises(ValueError, match="Missing recap field: aha_moments"):
-        validate_recap_output(invalid)
+def test_valid_recap_passes():
+    recap = make_valid_recap()
+    dumped = recap.model_dump()
+    assert dumped["summary"] == "This is the final summary."
+    assert dumped["final"]["content"] == "print('Hello World')"
 
 
-def test_final_not_dict():
-    invalid = VALID_RECAP.copy()
-    invalid["final"] = "not a dict"  # String instead of dict
-    with pytest.raises(ValueError, match="Final snippet must be a dict"):
-        validate_recap_output(invalid)
+def test_missing_required_field():
+    recap = make_valid_recap()
+    data = recap.model_dump()
+    del data["aha_moments"]
+    with pytest.raises(ValidationError):
+        Recap.model_validate(data)
 
 
-def test_rejected_versions_not_list():
-    invalid = VALID_RECAP.copy()
-    invalid["rejected_versions"] = "not a list"
-    with pytest.raises(ValueError, match="Rejected must be a list"):
-        validate_recap_output(invalid)
-
-
-def test_summary_not_string():
-    invalid = VALID_RECAP.copy()
-    invalid["summary"] = None
-    with pytest.raises(ValueError, match="summary must be a string"):
-        validate_recap_output(invalid)
+def test_invalid_field_type():
+    recap = make_valid_recap()
+    data = recap.model_dump()
+    data["summary"] = None  # should be string
+    with pytest.raises(ValidationError):
+        Recap.model_validate(data)
