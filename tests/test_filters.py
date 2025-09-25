@@ -20,8 +20,15 @@ PII_PATTERNS = [
     re.compile(r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b"),               # phone
 ]
 
-# Precompiled deny term patterns (case-insensitive)
-_DENY_PATTERNS = [re.compile(re.escape(term), re.IGNORECASE) for term in DENY_TERMS]
+# Build regex patterns:
+# - Single tokens get word boundaries
+# - Multi-word / command-like phrases use substring match
+_DENY_PATTERNS = []
+for term in DENY_TERMS:
+    if " " in term or "/" in term:  # treat as phrase/command
+        _DENY_PATTERNS.append(re.compile(re.escape(term), re.IGNORECASE))
+    else:
+        _DENY_PATTERNS.append(re.compile(rf"\b{re.escape(term)}\b", re.IGNORECASE))
 
 
 def contains_deny_terms(text: str) -> bool:
