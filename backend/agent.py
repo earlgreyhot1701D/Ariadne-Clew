@@ -1,124 +1,53 @@
 """
 Ariadne Clew: AWS AgentCore-powered reasoning agent.
-Preserves builder context from chaotic chat transcripts into structured clarity.
+Uses the real AWS AgentCore Runtime API with BedrockAgentCoreApp.
 
-Built for AWS Agent Hackathon - demonstrates autonomous agent behavior
-with AgentCore Code Interpreter, Memory, and Bedrock integration.
+Built for AWS Agent Hackathon - demonstrates AgentCore integration
+with reasoning extraction and structured recap generation.
 """
 
 from __future__ import annotations
 
-import logging
-from typing import Any, Dict, List, Optional
 import json
-import asyncio
+import logging
+from typing import Any, Dict, Optional
 
-# AgentCore imports - the hero of our story
-from agentcore import Agent
-from agentcore.tools import CodeInterpreter
-from agentcore.memory import Memory
-from agentcore.guardrails import ContentFilter, PIIFilter
+# Real AWS AgentCore imports
+from bedrock_agentcore import BedrockAgentCoreApp
+from strands import Agent
 
-# Keep minimal custom logic for demo polish
+# Keep your existing logic
 from backend.schema import Recap
 from backend.recap_formatter import format_recap
 
 logger = logging.getLogger(__name__)
 
+# Initialize AWS AgentCore app
+app = BedrockAgentCoreApp()
+agent = Agent()
 
-class AriadneClew(Agent):
+
+class AriadneClew:
     """
-    AWS AgentCore-powered reasoning agent that transforms chaotic chat transcripts
-    into structured reasoning artifacts.
+    AWS AgentCore-powered reasoning agent using the real BedrockAgentCoreApp.
 
-    Demonstrates true agentic behavior:
-    - Autonomous content classification
-    - Secure code validation via AgentCore Code Interpreter
-    - Cross-session memory persistence via AgentCore Memory
-    - Built-in guardrails for production safety
+    Transforms chaotic chat transcripts into structured reasoning artifacts
+    using AWS AgentCore Runtime and Strands agents.
     """
 
     def __init__(self, session_id: str = "default"):
-        """Initialize Ariadne Clew with full AgentCore stack"""
-
-        # Configure AgentCore as the foundation
-        super().__init__(
-            model_provider="bedrock",
-            model="claude-sonnet-3-5",
-            tools=[CodeInterpreter()],
-            memory=Memory(),
-            guardrails=[
-                ContentFilter(
-                    deny_terms=["password", "api_key", "rm -rf /", "BEGIN RSA PRIVATE KEY"]
-                ),
-                PIIFilter(scrub_emails=True, scrub_phones=True)
-            ],
-            max_tokens=4000
-        )
-
         self.session_id = session_id
-        self._reasoning_prompt = self._load_reasoning_prompt()
-
-    def _load_reasoning_prompt(self) -> str:
-        """Load the core reasoning extraction prompt - the agent's brain"""
-        return """
-        You are Ariadne Clew, a reasoning preservation agent for AI-native builders.
-
-        Your mission: Transform chaotic chat transcripts into structured clarity.
-
-        Analyze the provided chat transcript and extract these elements:
-
-        1. **Aha moments**: Key insights, discoveries, or shifts in understanding
-        2. **MVP changes**: Scope edits, pivots, feature commitments or cuts
-        3. **Code snippets**: All code blocks (you'll validate these separately)
-        4. **Design tradeoffs**: Explicit rationale for choosing approach X over Y
-        5. **Scope creep**: Evidence of expanding beyond stated MVP
-        6. **README notes**: Facts or concepts that belong in documentation
-        7. **Post-MVP ideas**: Features explicitly deferred for later
-        8. **Quality assessment**: Overall session structure and clarity
-
-        For each code snippet you find:
-        - Extract the exact code content
-        - Note the programming language
-        - Mark if user called it "final" or "preferred"
-        - You'll validate functionality using code interpreter
-
-        Return structured JSON following this schema:
-        {
-          "session_id": "string",
-          "aha_moments": ["insight 1", "insight 2"],
-          "mvp_changes": ["change 1", "change 2"],
-          "code_snippets": [
-            {
-              "content": "actual code here",
-              "language": "python|javascript|etc",
-              "user_marked_final": true|false,
-              "validation_status": "pending"
-            }
-          ],
-          "design_tradeoffs": ["tradeoff 1", "tradeoff 2"],
-          "scope_creep": ["creep 1", "creep 2"],
-          "readme_notes": ["note 1", "note 2"],
-          "post_mvp_ideas": ["idea 1", "idea 2"],
-          "quality_flags": ["flag 1", "flag 2"],
-          "summary": "One paragraph summary of the session"
-        }
-
-        CRITICAL: Return ONLY valid JSON. No markdown, no explanations, just JSON.
-        If any category has no items, use empty array [].
-        Never hallucinate - if unclear, leave empty rather than guess.
-        """
+        self.app = app
+        self.agent = agent
 
     async def process_transcript(self, chat_log: str) -> Dict[str, Any]:
         """
-        Main entry point: Process chat transcript into structured recap
+        Process chat transcript using AWS AgentCore
 
-        This demonstrates autonomous agent behavior:
-        1. Analyzes content and extracts reasoning
-        2. Validates code snippets securely
-        3. Resolves conflicts between versions
-        4. Persists decisions in memory
-        5. Returns human-readable recap
+        This uses the real AgentCore runtime to:
+        1. Extract reasoning from transcript
+        2. Structure the response
+        3. Return human-readable recap
         """
 
         if not chat_log or not isinstance(chat_log, str):
@@ -127,211 +56,139 @@ class AriadneClew(Agent):
         logger.info(f"AriadneClew processing transcript for session {self.session_id}")
 
         try:
-            # Step 1: Let AgentCore handle reasoning extraction
-            reasoning_task = f"{self._reasoning_prompt}\n\nCHAT TRANSCRIPT:\n{chat_log}"
-            raw_analysis = await self.execute(reasoning_task)
+            # Use the real AgentCore agent for reasoning extraction
+            reasoning_prompt = self._build_reasoning_prompt(chat_log)
 
-            # Parse the structured response
-            if isinstance(raw_analysis, str):
-                analysis = json.loads(raw_analysis)
-            else:
-                analysis = raw_analysis
+            # This calls the actual AgentCore/Bedrock integration
+            result = self.agent(reasoning_prompt)
 
+            # Parse the agent response
+            analysis = self._parse_agent_response(result.message)
             analysis["session_id"] = self.session_id
 
-            # Step 2: Validate code snippets with AgentCore Code Interpreter
-            validated_snippets = await self._validate_code_snippets(
-                analysis.get("code_snippets", [])
-            )
-            analysis["code_snippets"] = validated_snippets
-
-            # Step 3: Resolve conflicts and determine "final" versions
-            analysis = await self._resolve_code_conflicts(analysis)
-
-            # Step 4: Store reasoning in AgentCore Memory for continuity
-            await self._persist_session_context(analysis)
-
-            # Step 5: Format for human consumption
-            recap = await self._format_for_demo(analysis)
+            # Format for demo
+            recap = self._format_for_demo(analysis)
 
             logger.info(f"AriadneClew completed processing for session {self.session_id}")
             return recap
-
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse agent response as JSON: {e}")
-            raise ValueError("Agent returned invalid JSON - please retry")
 
         except Exception as e:
             logger.error(f"AriadneClew processing failed: {e}")
             raise RuntimeError(f"Reasoning extraction failed: {str(e)}")
 
-    async def _validate_code_snippets(self, snippets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Use AgentCore Code Interpreter to validate code snippets"""
+    def _build_reasoning_prompt(self, chat_log: str) -> str:
+        """Build the reasoning extraction prompt for AgentCore"""
+        return f"""
+        You are Ariadne Clew, a reasoning preservation agent for AI-native builders.
 
-        validated = []
+        Analyze this chat transcript and extract structured insights:
 
-        for snippet in snippets:
-            code_content = snippet.get("content", "")
-            language = snippet.get("language", "unknown")
+        1. **Aha moments**: Key insights or discoveries
+        2. **MVP changes**: Scope edits, pivots, feature decisions
+        3. **Code snippets**: All code blocks with language and context
+        4. **Design tradeoffs**: Explicit rationale for choices
+        5. **Scope creep**: Evidence of expanding beyond MVP
+        6. **README notes**: Facts that belong in documentation
+        7. **Post-MVP ideas**: Features deferred for later
+        8. **Quality assessment**: Session structure evaluation
 
-            if not code_content.strip():
-                snippet["validation_status"] = "empty"
-                snippet["validation_result"] = "No code content"
-                validated.append(snippet)
-                continue
+        Return valid JSON with this structure:
+        {{
+          "session_id": "{self.session_id}",
+          "aha_moments": ["insight 1", "insight 2"],
+          "mvp_changes": ["change 1", "change 2"],
+          "code_snippets": [
+            {{
+              "content": "actual code here",
+              "language": "python|javascript|etc",
+              "user_marked_final": true|false,
+              "context": "why this code was written"
+            }}
+          ],
+          "design_tradeoffs": ["tradeoff 1", "tradeoff 2"],
+          "scope_creep": ["creep 1", "creep 2"],
+          "readme_notes": ["note 1", "note 2"],
+          "post_mvp_ideas": ["idea 1", "idea 2"],
+          "quality_flags": ["flag 1", "flag 2"],
+          "summary": "One paragraph session summary"
+        }}
 
-            try:
-                # Use AgentCore Code Interpreter for secure validation
-                validation_prompt = f"""
-                Validate this {language} code snippet:
+        Chat transcript:
+        {chat_log}
 
-                ```{language}
-                {code_content}
-                ```
+        Return ONLY valid JSON. Empty arrays [] if no items found.
+        """
 
-                Check for:
-                1. Syntax validity
-                2. Basic functionality
-                3. Potential runtime errors
-                4. Security concerns
-
-                Return: {{"status": "valid|invalid|warning", "details": "explanation"}}
-                """
-
-                result = await self.execute(validation_prompt, tools=["code_interpreter"])
-
-                if isinstance(result, str):
-                    validation_data = json.loads(result)
-                else:
-                    validation_data = result
-
-                snippet["validation_status"] = validation_data.get("status", "unknown")
-                snippet["validation_result"] = validation_data.get("details", "No details")
-
-            except Exception as e:
-                logger.warning(f"Code validation failed for snippet: {e}")
-                snippet["validation_status"] = "error"
-                snippet["validation_result"] = f"Validation error: {str(e)}"
-
-            validated.append(snippet)
-
-        return validated
-
-    async def _resolve_code_conflicts(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
-        """Autonomous conflict resolution when multiple 'final' versions exist"""
-
-        snippets = analysis.get("code_snippets", [])
-        final_snippets = [s for s in snippets if s.get("user_marked_final", False)]
-
-        if len(final_snippets) > 1:
-            # Let the agent decide which version to prefer
-            conflict_prompt = f"""
-            Multiple code snippets marked as 'final'. Analyze and choose the best version:
-
-            {json.dumps(final_snippets, indent=2)}
-
-            Consider:
-            - Validation status (prefer valid over invalid)
-            - Code quality and completeness
-            - Position in transcript (later often better)
-
-            Return: {{"chosen_index": 0, "reasoning": "why this version"}}
-            """
-
-            try:
-                resolution = await self.execute(conflict_prompt)
-                if isinstance(resolution, str):
-                    resolution_data = json.loads(resolution)
-                else:
-                    resolution_data = resolution
-
-                chosen_idx = resolution_data.get("chosen_index", 0)
-                reasoning = resolution_data.get("reasoning", "Agent preference")
-
-                # Mark the chosen snippet and add resolution metadata
-                for i, snippet in enumerate(final_snippets):
-                    if i == chosen_idx:
-                        snippet["agent_chosen_final"] = True
-                        snippet["resolution_reasoning"] = reasoning
-                    else:
-                        snippet["user_marked_final"] = False  # Downgrade others
-
-                # Add to quality flags
-                analysis["quality_flags"] = analysis.get("quality_flags", [])
-                analysis["quality_flags"].append(
-                    f"Resolved conflict: {len(final_snippets)} versions marked final, "
-                    f"chose version based on: {reasoning}"
-                )
-
-            except Exception as e:
-                logger.warning(f"Conflict resolution failed: {e}")
-                # Fallback: prefer last marked final
-                for snippet in final_snippets[:-1]:
-                    snippet["user_marked_final"] = False
-
-        return analysis
-
-    async def _persist_session_context(self, analysis: Dict[str, Any]) -> None:
-        """Store key decisions in AgentCore Memory for cross-session continuity"""
-
+    def _parse_agent_response(self, response: str) -> Dict[str, Any]:
+        """Parse the agent response into structured data"""
         try:
-            # Store the final code decision for future reference
-            final_snippets = [
-                s for s in analysis.get("code_snippets", [])
-                if s.get("user_marked_final", False) or s.get("agent_chosen_final", False)
-            ]
+            # Try to parse as JSON
+            if response.startswith('{') and response.endswith('}'):
+                return json.loads(response)
 
-            memory_context = {
-                "session_id": self.session_id,
-                "timestamp": "2025-09-25",  # Would use datetime in production
-                "final_code_count": len(final_snippets),
-                "key_decisions": analysis.get("mvp_changes", [])[:3],  # Store top 3
-                "session_summary": analysis.get("summary", "")
-            }
+            # Try to extract JSON from markdown code blocks
+            if '```json' in response:
+                start = response.find('```json') + 7
+                end = response.find('```', start)
+                if end != -1:
+                    json_str = response[start:end].strip()
+                    return json.loads(json_str)
 
-            await self.memory.store(f"session_{self.session_id}", memory_context)
-            logger.info(f"Persisted session context for {self.session_id}")
+            # Try to extract JSON from any code block
+            if '```' in response:
+                start = response.find('```') + 3
+                end = response.find('```', start)
+                if end != -1:
+                    json_str = response[start:end].strip()
+                    # Skip language identifier if present
+                    if json_str.startswith('json\n'):
+                        json_str = json_str[5:]
+                    return json.loads(json_str)
 
-        except Exception as e:
-            logger.warning(f"Memory persistence failed: {e}")
-            # Don't fail the whole pipeline for memory issues
+            # Fallback: try to find JSON anywhere in response
+            start = response.find('{')
+            end = response.rfind('}') + 1
+            if start != -1 and end > start:
+                json_str = response[start:end]
+                return json.loads(json_str)
 
-    async def _format_for_demo(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
-        """Format the structured analysis into demo-ready output"""
+            raise ValueError("No valid JSON found in agent response")
 
-        # Create human-readable summary
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse agent response as JSON: {e}")
+            logger.error(f"Agent response was: {response}")
+            raise ValueError("Agent returned invalid JSON - please retry")
+
+    def _format_for_demo(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Format the analysis for demo output"""
+
+        # Generate human-readable summary
         human_readable = self._generate_human_summary(analysis)
 
-        # Validate against schema (keeping your existing validation)
+        # Try to validate with your existing schema
         try:
             recap_model = Recap.model_validate(analysis)
-            formatted_recap = format_recap(recap_model)
+            structured_data = format_recap(recap_model)
         except Exception as e:
             logger.warning(f"Schema validation failed: {e}")
-            # Fallback formatting
-            formatted_recap = analysis
+            # Fallback - use analysis as-is
+            structured_data = analysis
 
         return {
             "human_readable": human_readable,
-            "structured_data": formatted_recap,
+            "structured_data": structured_data,
             "session_id": self.session_id,
             "agent_metadata": {
                 "processed_by": "AriadneClew",
-                "agentcore_version": "1.0",
-                "code_snippets_validated": len(analysis.get("code_snippets", [])),
-                "conflicts_resolved": len([
-                    s for s in analysis.get("code_snippets", [])
-                    if s.get("agent_chosen_final", False)
-                ])
+                "agentcore_runtime": "BedrockAgentCoreApp",
+                "strands_agent": True,
+                "code_snippets_found": len(analysis.get("code_snippets", [])),
+                "insights_extracted": len(analysis.get("aha_moments", []))
             }
         }
 
     def _generate_human_summary(self, analysis: Dict[str, Any]) -> str:
         """Generate scannable human-readable recap"""
-
-        snippets = analysis.get("code_snippets", [])
-        final_snippets = [s for s in snippets if
-                         s.get("user_marked_final", False) or s.get("agent_chosen_final", False)]
 
         summary_parts = []
 
@@ -345,64 +202,120 @@ class AriadneClew(Agent):
 
         # Key insights
         if analysis.get("aha_moments"):
-            summary_parts.append("### 💡 Key Insights")
+            summary_parts.append("### Key Insights")
             for moment in analysis["aha_moments"]:
                 summary_parts.append(f"- {moment}")
             summary_parts.append("")
 
-        # Final code
-        if final_snippets:
-            summary_parts.append("### 🎯 What You Built")
-            for snippet in final_snippets:
-                status = "✅" if snippet.get("validation_status") == "valid" else "⚠️"
+        # Code found
+        if analysis.get("code_snippets"):
+            summary_parts.append("### Code Discovered")
+            for snippet in analysis["code_snippets"]:
                 lang = snippet.get("language", "code")
-                summary_parts.append(f"**Final {lang}**: {status} Validated")
-                if snippet.get("resolution_reasoning"):
-                    summary_parts.append(f"*Why this version*: {snippet['resolution_reasoning']}")
+                final_marker = "FINAL" if snippet.get("user_marked_final") else ""
+                summary_parts.append(f"**{lang} snippet** {final_marker}")
+                if snippet.get("context"):
+                    summary_parts.append(f"*Context*: {snippet['context']}")
             summary_parts.append("")
 
         # MVP changes
         if analysis.get("mvp_changes"):
-            summary_parts.append("### 🔄 Scope Changes")
+            summary_parts.append("### Scope Changes")
             for change in analysis["mvp_changes"]:
                 summary_parts.append(f"- {change}")
             summary_parts.append("")
 
+        # Design decisions
+        if analysis.get("design_tradeoffs"):
+            summary_parts.append("### Design Decisions")
+            for tradeoff in analysis["design_tradeoffs"]:
+                summary_parts.append(f"- {tradeoff}")
+            summary_parts.append("")
+
         # Post-MVP ideas
         if analysis.get("post_mvp_ideas"):
-            summary_parts.append("### 🚀 Post-MVP Ideas")
+            summary_parts.append("### Post-MVP Ideas")
             for idea in analysis["post_mvp_ideas"]:
                 summary_parts.append(f"- {idea}")
             summary_parts.append("")
 
         return "\n".join(summary_parts)
 
-    async def recall_previous_session(self) -> Optional[Dict[str, Any]]:
-        """Demonstrate AgentCore Memory - recall previous decisions"""
+
+# AgentCore entrypoint - this is how AgentCore calls your agent
+@app.entrypoint
+def invoke(payload):
+    """
+    AWS AgentCore entrypoint for Ariadne Clew.
+
+    Payload should contain:
+    {
+        "chat_log": "transcript text...",
+        "session_id": "optional-session-id"
+    }
+    """
+    try:
+        chat_log = payload.get("chat_log")
+        session_id = payload.get("session_id", "agentcore-session")
+
+        if not chat_log:
+            return {
+                "error": "Missing 'chat_log' in payload",
+                "status": "failed"
+            }
+
+        # Create AriadneClew instance and process
+        ariadne = AriadneClew(session_id=session_id)
+
+        # Note: AgentCore entrypoint is sync, but process_transcript is async
+        # For now, we'll make a sync version
+        result = ariadne._process_transcript_sync(chat_log)
+
+        return {
+            "status": "success",
+            "result": result
+        }
+
+    except Exception as e:
+        logger.error(f"AgentCore entrypoint failed: {e}")
+        return {
+            "status": "failed",
+            "error": str(e)
+        }
+
+    def _process_transcript_sync(self, chat_log: str) -> Dict[str, Any]:
+        """Synchronous version for AgentCore entrypoint"""
+        # Same logic as async version but without await
+        if not chat_log or not isinstance(chat_log, str):
+            raise ValueError("Invalid chat_log: must be non-empty string")
+
+        logger.info(f"AriadneClew processing transcript for session {self.session_id}")
 
         try:
-            previous_context = await self.memory.retrieve(f"session_{self.session_id}")
-            return previous_context
+            reasoning_prompt = self._build_reasoning_prompt(chat_log)
+            result = self.agent(reasoning_prompt)
+            analysis = self._parse_agent_response(result.message)
+            analysis["session_id"] = self.session_id
+            recap = self._format_for_demo(analysis)
+
+            logger.info(f"AriadneClew completed processing for session {self.session_id}")
+            return recap
+
         except Exception as e:
-            logger.warning(f"Memory recall failed: {e}")
-            return None
+            logger.error(f"AriadneClew processing failed: {e}")
+            raise RuntimeError(f"Reasoning extraction failed: {str(e)}")
 
 
-# Convenience function for backwards compatibility
+# Backwards compatibility function
 async def process_chat_log(chat_log: str, session_id: str = "default") -> Dict[str, Any]:
-    """
-    Backwards-compatible entry point for existing code.
-    Creates AriadneClew instance and processes transcript.
-    """
-
-    agent = AriadneClew(session_id=session_id)
-    return await agent.process_transcript(chat_log)
+    """Backwards compatible entry point"""
+    ariadne = AriadneClew(session_id=session_id)
+    return await ariadne.process_transcript(chat_log)
 
 
-# Demo/test helper
+# Demo function
 async def demo_ariadne_clew():
-    """Quick demo of AriadneClew capabilities"""
-
+    """Demo AriadneClew with sample transcript"""
     sample_transcript = """
     User: I need a function to calculate fibonacci numbers for my project
 
@@ -428,15 +341,19 @@ async def demo_ariadne_clew():
     User: Perfect, let's go with the iterative version as final.
     """
 
-    agent = AriadneClew(session_id="demo")
-    result = await agent.process_transcript(sample_transcript)
+    ariadne = AriadneClew(session_id="demo")
+    result = await ariadne.process_transcript(sample_transcript)
 
     print("=== HUMAN READABLE ===")
     print(result["human_readable"])
     print("\n=== STRUCTURED DATA ===")
     print(json.dumps(result["structured_data"], indent=2))
+    print("\n=== AGENT METADATA ===")
+    print(json.dumps(result["agent_metadata"], indent=2))
 
 
+# For local testing with AgentCore
 if __name__ == "__main__":
-    # For local testing
-    asyncio.run(demo_ariadne_clew())
+    print("Starting Ariadne Clew AgentCore app...")
+    print("Test with: curl -X POST http://localhost:8080/invocations -H 'Content-Type: application/json' -d '{\"chat_log\": \"User: Hello\\nAssistant: Hi there!\"}'")
+    app.run()
