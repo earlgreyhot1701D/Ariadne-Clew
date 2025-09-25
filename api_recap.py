@@ -18,9 +18,10 @@ from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
 from pydantic import BaseModel, ValidationError
 
-from backend.diffcheck import diff_code_blocks
+# ✅ Use the richer root-level handlers, not backend stubs
+from code_handler import validate_snippet, extract_code_blocks, version_snippets, reconcile_intent, summarize_session
+from diffcheck import diff_code_blocks
 from backend.filters import enforce_size_limit, contains_deny_terms, scrub_pii
-from backend.code_handler import validate_snippet
 from backend.recap_formatter import format_recap
 from backend.memory_handler import store_recap
 from backend.schema import Recap
@@ -37,9 +38,13 @@ logging.basicConfig(level=os.environ.get("LOG_LEVEL", "WARNING"))
 logger = logging.getLogger(__name__)
 
 # AWS Bedrock client
-bedrock = boto3.client(
-    "bedrock-runtime", region_name=os.environ.get("AWS_REGION", "us-east-1")
-)
+try:
+    bedrock = boto3.client(
+        "bedrock-runtime", region_name=os.environ.get("AWS_REGION", "us-east-1")
+    )
+except Exception as e:
+    logger.warning("Bedrock client could not be initialized: %s", e)
+    bedrock = None
 
 
 # Constants
@@ -77,15 +82,18 @@ def load_prompts() -> str:
 
 def classify_with_bedrock(prompt: str) -> List[Dict[str, Any]]:
     """Call Bedrock Claude model to classify chat log into blocks."""
-    model_id = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-3-sonnet-20240229-v1:0")
+    if bedrock is None:
+        logger.warning("Bedrock not initialized; returning raw text block.")
+        return [{"type": "text", "content": prompt}]
 
-    # Construct proper Claude 3 API request
+    model_id = os.environ.get(
+        "BEDROCK_MODEL_ID", "anthropic.claude-3-sonnet-20240229-v1:0"
+    )
+
     body = {
-        "messages": [
-            {"role": "user", "content": prompt}
-        ],
+        "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 4000,
-        "anthropic_version": "bedrock-2023-05-31"
+        "anthropic_version": "bedrock-2023-05-31",
     }
 
     try:
@@ -95,31 +103,20 @@ def classify_with_bedrock(prompt: str) -> List[Dict[str, Any]]:
             contentType="application/json",
             body=json.dumps(body),
         )
-
-        # Parse Claude's response
         payload: Any = json.loads(resp["body"].read().decode("utf-8"))
 
-        # Extract the response text from Claude's new format
+        # TODO: Implement structured parsing instead of always text
         if isinstance(payload, dict) and "content" in payload:
             content_list = payload["content"]
             if isinstance(content_list, list) and len(content_list) > 0:
                 response_text = content_list[0].get("text", "")
-
-                # For now, return the response as a single text block
-                # TODO: Parse structured output from Claude for better classification
                 return [{"content": response_text, "type": "text"}]
 
         logger.warning("Unexpected Bedrock response format")
         return []
-
     except Exception as e:
         logger.error(f"Bedrock classification failed: {e}")
         raise RuntimeError("Classification step failed.") from e
-
-
-def validate_recap_output(data: Dict[str, Any]) -> Recap:
-    """Validate recap dict against Pydantic schema."""
-    return Recap.model_validate(data)
 
 
 def create_recap_from_log(chat_log: str) -> Dict[str, Any]:
@@ -127,45 +124,27 @@ def create_recap_from_log(chat_log: str) -> Dict[str, Any]:
     if not chat_log or not isinstance(chat_log, str):
         raise ValueError("Invalid or missing 'chat_log' (must be a non-empty string).")
 
-    logger.debug(f"Chat log length: {len(chat_log)}")
-
-    # Apply filters
     enforce_size_limit(chat_log)
     if contains_deny_terms(chat_log):
         raise ValueError("Input contains unsafe terms.")
     chat_log = scrub_pii(chat_log)
 
-    # Build prompt
     full_prompt = f"{load_prompts()}\n\n{chat_log}"
-    logger.debug(f"Prompt length after merging: {len(full_prompt)}")
-
-    # Classification (via Bedrock)
-    logger.debug("Classifying chat log into blocks.")
     blocks = classify_with_bedrock(full_prompt)
 
-    # Validate code snippets (syntax check, etc.)
     validated_blocks: List[Dict[str, Any]] = []
     for block in blocks:
         content = block.get("content", "")
-        result = validate_snippet(content)
-        block["validation"] = result
+        if block.get("type") == "code":
+            result = validate_snippet(content)
+            block["validation"] = result
         validated_blocks.append(block)
 
-    # Diffing / reconciliation into recap dict (final + rejected_versions + summary fields)
-    logger.debug("Reconciling code blocks.")
     recap_dict: Dict[str, Any] = diff_code_blocks(validated_blocks)
 
-    # Validate recap shape -> Pydantic model
     recap_model: Recap = Recap.model_validate(recap_dict)
-
-    # Format recap into final response payload
     recap_payload: Dict[str, Any] = format_recap(recap_model)
-    logger.debug(f"Final recap keys: {list(recap_payload.keys())}")
 
-    # Optional: validate the payload if you want to ensure raw_json is schema-correct
-    _ = validate_recap_output(recap_model.model_dump())
-
-    # Persist the formatted recap
     store_recap("last_recap", recap_payload)
 
     return recap_payload
@@ -180,18 +159,13 @@ def process_recap_request(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
 
     except ValidationError as ve:
         logger.warning(f"Validation error: {ve}")
-        return {
-            "error": "Invalid request format or missing fields."
-        }, HttpStatus.BAD_REQUEST
-
+        return {"error": "Invalid request format or missing fields."}, HttpStatus.BAD_REQUEST
     except ValueError as ve:
         logger.warning(f"Value error: {ve}")
         return {"error": str(ve)}, HttpStatus.BAD_REQUEST
-
     except RuntimeError as re:
         logger.error(f"Runtime error: {re}")
         return {"error": str(re)}, HttpStatus.INTERNAL_SERVER_ERROR
-
     except Exception as e:
         logger.critical(f"Unhandled error: {e}\n{traceback.format_exc()}")
         return {"error": "Internal server error."}, HttpStatus.INTERNAL_SERVER_ERROR
@@ -201,10 +175,7 @@ def process_recap_request(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
 def generate_recap() -> Union[Response, Tuple[Response, int]]:
     """Classify chat content and produce a structured recap."""
     if request.content_type != ContentType.JSON:
-        return (
-            jsonify({"error": "Content-Type must be application/json"}),
-            HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-        )
+        return jsonify({"error": "Content-Type must be application/json"}), HttpStatus.UNSUPPORTED_MEDIA_TYPE
 
     data: Dict[str, Any] = request.get_json(force=True)
     response, status = process_recap_request(data)
