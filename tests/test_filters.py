@@ -48,3 +48,13 @@ def scrub_pii(text: str) -> str:
     for pattern in PII_PATTERNS:
         scrubbed = pattern.sub("[REDACTED]", scrubbed)
     return scrubbed
+
+def test_filters_block_dangerous_inputs():
+    """At least one roadmap-dangerous pattern should be caught by deny terms."""
+    bad_inputs = [
+        "rm -rf /",
+        "BEGIN RSA PRIVATE KEY",
+    ]
+    caught = [filters.contains_deny_terms(text) for text in bad_inputs]
+    # Require at least one dangerous input to be flagged
+    assert any(caught)
