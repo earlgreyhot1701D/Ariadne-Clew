@@ -134,9 +134,8 @@ def create_recap_from_log(chat_log: str, session_id: str) -> Dict[str, Any]:
     if not chat_log or not isinstance(chat_log, str):
         raise ValueError("Invalid or missing 'chat_log' (must be a non-empty string).")
 
-# ✅ Early guardrail: catch oversized input before anything else
+    # ✅ Early guardrail
     validate_input_length(chat_log)
-
     enforce_size_limit(chat_log)
     if contains_deny_terms(chat_log):
         raise ValueError("Input contains unsafe terms.")
@@ -153,6 +152,13 @@ def create_recap_from_log(chat_log: str, session_id: str) -> Dict[str, Any]:
         validated_blocks.append(block)
 
     recap_dict: Dict[str, Any] = diff_code_blocks(validated_blocks)
+
+    # 🚧 Shim for legacy keys → canonical schema
+    # TODO: Remove once diffcheck emits schema-compliant fields directly
+    if "rejected" in recap_dict:
+        recap_dict["rejected_versions"] = recap_dict.pop("rejected")
+    if "text_summary" in recap_dict:
+        recap_dict["summary"] = recap_dict.pop("text_summary")
 
     recap_model: Recap = Recap.model_validate(recap_dict)
     recap_payload: Dict[str, Any] = format_recap(recap_model)
