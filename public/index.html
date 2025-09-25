@@ -21,7 +21,7 @@
       <div class="hint">Enter your session ID or upload a JSON file below</div>
 
       <div class="actions">
-        <button type="submit">Get Recap</button>
+        <button type="submit" id="submit-btn">Get Recap</button>
         <button type="button" id="copy-btn">Copy Recap</button>
         <button type="button" id="export-md">Export Markdown</button>
         <input type="file" id="file-upload" accept="application/json" />
@@ -43,12 +43,45 @@
     </footer>
   </div>
 
+  <!-- Scripts -->
   <script src="scripts/utils.js"></script>
-  <script src="scripts/dom_js.js"></script>
-  <script src="scripts/api_js.js"></script>
+  <script src="scripts/dom.js"></script>
+  <script src="scripts/api.js"></script>
   <script src="scripts/theme.js"></script>
   <script src="scripts/exportMarkdown.js"></script>
   <script src="scripts/dragDrop.js"></script>
-  <script src="scripts/main_js.js"></script>
+  <script src="scripts/main.js"></script>
+
+  <script>
+    // Disable/enable submit button on form submission
+    const form = document.getElementById("recap-form");
+    const submitBtn = document.getElementById("submit-btn");
+    const statusEl = document.getElementById("status");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      statusEl.textContent = "Loading recap…";
+
+      try {
+        const sessionId = document.getElementById("session-id").value;
+        const response = await fetch("/v1/recap", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_log: "Demo request", session_id: sessionId }),
+        });
+
+        const data = await response.json();
+        document.getElementById("recap-output").textContent =
+          data.human_readable || JSON.stringify(data, null, 2);
+        statusEl.textContent = "Recap loaded.";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Error loading recap.";
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
 </body>
 </html>
