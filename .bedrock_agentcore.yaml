@@ -6,12 +6,12 @@ agents:
     platform: linux/arm64
     container_runtime: none
     aws:
-      execution_role: null
-      execution_role_auto_create: true
+      execution_role: arn:aws:iam::833162255362:role/AmazonBedrockAgentCoreSDKRuntime-us-east-1-d4f0bc5a29
+      execution_role_auto_create: false
       account: '833162255362'
       region: us-east-1
-      ecr_repository: null
-      ecr_auto_create: true
+      ecr_repository: 833162255362.dkr.ecr.us-east-1.amazonaws.com/bedrock-agentcore-agent
+      ecr_auto_create: false
       network_configuration:
         network_mode: PUBLIC
       protocol_configuration:
@@ -19,13 +19,13 @@ agents:
       observability:
         enabled: true
     bedrock_agentcore:
-      agent_id: null
-      agent_arn: null
+      agent_id: agent-Ea1xEW6TfX
+      agent_arn: arn:aws:bedrock-agentcore:us-east-1:833162255362:runtime/agent-Ea1xEW6TfX
       agent_session_id: null
     codebuild:
-      project_name: null
-      execution_role: null
-      source_bucket: null
+      project_name: bedrock-agentcore-agent-builder
+      execution_role: arn:aws:iam::833162255362:role/AmazonBedrockAgentCoreSDKCodeBuild-us-east-1-d4f0bc5a29
+      source_bucket: bedrock-agentcore-codebuild-sources-833162255362-us-east-1
     authorizer_configuration: null
     request_header_configuration: null
     oauth_configuration: null
