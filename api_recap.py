@@ -141,21 +141,25 @@ def create_recap_from_log(chat_log: str, session_id: str) -> Dict[str, Any]:
     full_prompt = f"{load_prompts()}\n\n{chat_log}"
     blocks = classify_with_bedrock(full_prompt)
 
-    validated_blocks: List[Dict[str, Any]] = []
-    for block in blocks:
-        if block.get("type") == "code":
-            result = validate_snippet(block.get("content", ""))
-            block["validation"] = result
-        validated_blocks.append(block)
+validated_blocks: List[Dict[str, Any]] = []
+for block in blocks:
+    if block.get("type") == "code":
+        result = validate_snippet(block.get("content", ""))
+        block["validation"] = result
+    validated_blocks.append(block)
 
-    recap_dict: Dict[str, Any] = diff_code_blocks(validated_blocks)
+recap_dict: Dict[str, Any] = diff_code_blocks(validated_blocks)
 
-    recap_model: Recap = Recap.model_validate(recap_dict)
-    recap_payload: Dict[str, Any] = format_recap(recap_model)
+recap_model: Recap = Recap.model_validate(recap_dict)
+recap_payload: Dict[str, Any] = format_recap(recap_model)
 
-    store_recap("last_recap", recap_payload, session_id=session_id)
+success = store_recap("last_recap", recap_payload, session_id=session_id)
+if not success:
+    logger.error("Failed to persist recap for session %s", session_id)
+    raise RuntimeError("Unable to persist recap; please retry.")
 
-    return recap_payload
+return recap_payload
+
 
 
 def process_recap_request(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
