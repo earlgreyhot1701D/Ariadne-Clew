@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
 import boto3
+from dotenv import load_dotenv
 from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
 from pydantic import BaseModel, ValidationError
@@ -24,6 +25,9 @@ from backend.recap_formatter import format_recap
 from backend.memory_handler import store_recap
 from backend.schema import Recap
 
+# Load environment variables
+load_dotenv()
+
 # App initialization
 app = Flask(__name__)
 CORS(app)
@@ -32,7 +36,7 @@ CORS(app)
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "WARNING"))
 logger = logging.getLogger(__name__)
 
-# AWS Bedrock client (TODO: add timeouts/retries for prod)
+# AWS Bedrock client
 bedrock = boto3.client(
     "bedrock-runtime", region_name=os.environ.get("AWS_REGION", "us-east-1")
 )
@@ -55,7 +59,8 @@ class RecapRequest(BaseModel):
     chat_log: str
 
 
-PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
+PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
+
 
 def load_prompts() -> str:
     """Load system and classifier prompts from the prompts/ directory."""
@@ -71,9 +76,18 @@ def load_prompts() -> str:
 
 
 def classify_with_bedrock(prompt: str) -> List[Dict[str, Any]]:
-    """Call Bedrock model to classify chat log into blocks."""
-    model_id = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-v2")
-    body = {"inputText": prompt}
+    """Call Bedrock Claude model to classify chat log into blocks."""
+    model_id = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-3-sonnet-20240229-v1:0")
+
+    # Construct proper Claude 3 API request
+    body = {
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "max_tokens": 4000,
+        "anthropic_version": "bedrock-2023-05-31"
+    }
+
     try:
         resp = bedrock.invoke_model(
             modelId=model_id,
@@ -81,12 +95,23 @@ def classify_with_bedrock(prompt: str) -> List[Dict[str, Any]]:
             contentType="application/json",
             body=json.dumps(body),
         )
+
+        # Parse Claude's response
         payload: Any = json.loads(resp["body"].read().decode("utf-8"))
-        if isinstance(payload, dict):
-            blocks = payload.get("blocks", [])
-            if isinstance(blocks, list):
-                return blocks
+
+        # Extract the response text from Claude's new format
+        if isinstance(payload, dict) and "content" in payload:
+            content_list = payload["content"]
+            if isinstance(content_list, list) and len(content_list) > 0:
+                response_text = content_list[0].get("text", "")
+
+                # For now, return the response as a single text block
+                # TODO: Parse structured output from Claude for better classification
+                return [{"content": response_text, "type": "text"}]
+
+        logger.warning("Unexpected Bedrock response format")
         return []
+
     except Exception as e:
         logger.error(f"Bedrock classification failed: {e}")
         raise RuntimeError("Classification step failed.") from e

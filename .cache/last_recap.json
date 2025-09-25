@@ -1,0 +1,19 @@
+{
+  "human_readable": "Session ID: d64288ae-59c8-4a61-9a42-d1860e482a89\n❌ 1 rejected versions\nFlags: ⚠️ Some code blocks failed validation, ❌ No valid code found\nSummary: What You Built: No valid code found. 1 rejected versions.",
+  "raw_json": {
+    "session_id": "d64288ae-59c8-4a61-9a42-d1860e482a89",
+    "final": null,
+    "rejected_versions": [
+      {
+        "code": "Here is a JSON object classifying the key signals from our session log, based on the prompt:\n\n```json\n{\n  \"session_id\": \"claude-intro-session\",\n  \"aha_moments\": [\n    \"Clarifying that I should return structured JSON data instead of generating prose or markdown\"\n  ],\n  \"mvp_changes\": [\n    \"Establishing the required JSON output format and field definitions\"\n  ],\n  \"scope_creep\": [],\n  \"readme_notes\": [\n    \"Mentioning the ability to adjust and add new fields over time based on emerging needs\"\n  ],\n  \"post_mvp_ideas\": [],\n  \"summary\": \"This initial session introduced the requirements for my role as a session log classifier, providing the JSON schema, field definitions, and guidelines to follow.\",\n  \"quality_flags\": [\n    \"✅ Clear instructions\",\n    \"⚠️ No actual logs provided yet\"\n  ]\n}\n```\n\nMy role is to extract key reasoning signals from chat logs by classifying the content into the predefined JSON fields. Since no full session transcript was provided, some fields like `scope_creep` and `post_mvp_ideas` are empty arrays for now.\n\nLet me know if you need any clarification or have additional logs for me to analyze!",
+        "reason": "Invalid Python"
+      }
+    ],
+    "summary": "What You Built: No valid code found. 1 rejected versions.",
+    "aha_moments": [],
+    "quality_flags": [
+      "⚠️ Some code blocks failed validation",
+      "❌ No valid code found"
+    ]
+  }
+}
