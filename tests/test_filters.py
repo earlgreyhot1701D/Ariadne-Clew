@@ -1,7 +1,7 @@
 # backend/filters.py
 import re
 
-# Expanded deny-listed terms (MVP guardrails)
+# Expanded deny-listed terms for MVP guardrails
 DENY_TERMS = [
     "api_key",
     "password",
@@ -21,26 +21,13 @@ PII_PATTERNS = [
 ]
 
 
-def _build_patterns():
-    """Build regex patterns for deny-listed terms."""
-    patterns = []
-    for term in DENY_TERMS:
-        if " " in term or "/" in term:
-            # Multi-word or command-like phrase → normalize whitespace
-            flexible = re.sub(r"\s+", r"\\s+", re.escape(term))
-            patterns.append(re.compile(flexible, re.IGNORECASE))
-        else:
-            # Single token → word boundary match
-            patterns.append(re.compile(rf"\b{re.escape(term)}\b", re.IGNORECASE))
-    return patterns
-
-
-_DENY_PATTERNS = _build_patterns()
-
-
 def contains_deny_terms(text: str) -> bool:
-    """Return True if text contains any deny-listed terms (case-insensitive)."""
-    return any(p.search(text) for p in _DENY_PATTERNS)
+    """
+    Return True if text contains any deny-listed terms.
+    Uses simple case-insensitive substring matching for robustness.
+    """
+    lower_text = text.lower()
+    return any(term.lower() in lower_text for term in DENY_TERMS)
 
 
 def enforce_size_limit(text: str) -> None:
