@@ -25,6 +25,7 @@ from backend.filters import enforce_size_limit, contains_deny_terms, scrub_pii
 from backend.recap_formatter import format_recap
 from backend.memory_handler import store_recap
 from backend.schema import Recap
+from lambda_classifier import validate_input_length
 
 # Load environment variables
 load_dotenv()
@@ -132,6 +133,9 @@ def create_recap_from_log(chat_log: str, session_id: str) -> Dict[str, Any]:
     """Process chat logs and generate a structured recap payload (JSON-serializable dict)."""
     if not chat_log or not isinstance(chat_log, str):
         raise ValueError("Invalid or missing 'chat_log' (must be a non-empty string).")
+
+# ✅ Early guardrail: catch oversized input before anything else
+    validate_input_length(chat_log)
 
     enforce_size_limit(chat_log)
     if contains_deny_terms(chat_log):

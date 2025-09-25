@@ -1,3 +1,4 @@
+# backend/memory_handler.py
 from __future__ import annotations
 
 import json
@@ -23,36 +24,36 @@ def _key_to_path(key: str, session_id: Optional[str] = None) -> Path:
     return _CACHE_DIR / f"{safe_key}.json"
 
 
-def store_recap(key: str, recap: Dict[str, Any], session_id: Optional[str] = None) -> bool:
+def store_recap(key: str, recap: Dict[str, Any], session_id: Optional[str] = None) -> None:
     """
     Persist a recap dict to disk under a given key.
-    Returns True if successful, False otherwise.
+    Raises IOError if write fails.
     """
     path = _key_to_path(key, session_id)
     try:
         with path.open("w", encoding="utf-8") as f:
             json.dump(recap, f, ensure_ascii=False, indent=2)
-        return True
     except IOError as e:
         logger.error(f"Failed to store recap at {path}: {e}")
-        return False
+        raise
 
 
-def load_cached_recap(key: str, session_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def load_cached_recap(key: str, session_id: Optional[str] = None) -> Dict[str, Any]:
     """
-    Load a recap dict from disk if it exists.
-    Returns None if not found or invalid/unreadable.
+    Load a recap dict from disk.
+    Raises FileNotFoundError if missing, JSONDecodeError/IOError if unreadable,
+    or ValueError if the data is not a dict.
     """
     path = _key_to_path(key, session_id)
     if not path.exists():
-        return None
+        raise FileNotFoundError(f"No recap found at {path}")
 
     try:
         with path.open("r", encoding="utf-8") as f:
             raw = json.load(f)
-        if isinstance(raw, dict):
-            return {str(k): v for k, v in raw.items()}
+        if not isinstance(raw, dict):
+            raise ValueError(f"Invalid recap format at {path}")
+        return {str(k): v for k, v in raw.items()}
     except (IOError, JSONDecodeError) as e:
-        logger.warning(f"Failed to load recap at {path}: {e}")
-
-    return None
+        logger.error(f"Failed to load recap at {path}: {e}")
+        raise

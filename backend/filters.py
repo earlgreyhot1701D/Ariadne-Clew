@@ -1,30 +1,32 @@
-# filters.py
+# backend/filters.py
 import re
 
-MAX_CHARS = 100_000
-DENY_TERMS = ["password", "api_key", "rm -rf /", "BEGIN RSA PRIVATE KEY"]
-
+# Example deny-listed terms — extend as needed
+DENY_TERMS = ["api_key", "password", "secret"]
+MAX_CHARS = 100_000  # ~20k tokens max
 PII_PATTERNS = [
-    (re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), "[redacted email]"),
-    (re.compile(r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b"), "[redacted phone]"),
+    re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),  # SSN pattern
+    re.compile(r"\b\d{16}\b"),             # naive credit card
 ]
 
-
-def enforce_size_limit(text: str) -> None:
-    """Raise ValueError if input exceeds MAX_CHARS."""
-    if len(text) > MAX_CHARS:
-        raise ValueError(f"Input too large ({len(text)} chars). Limit is {MAX_CHARS}.")
+# Precompiled deny term patterns (word boundary, case-insensitive)
+_DENY_PATTERNS = [re.compile(rf"\b{re.escape(term)}\b", re.IGNORECASE) for term in DENY_TERMS]
 
 
 def contains_deny_terms(text: str) -> bool:
-    """Return True if text contains any deny-listed term (case-insensitive)."""
-    lowered_text = text.lower()
-    return any(term.lower() in lowered_text for term in DENY_TERMS)
+    """Return True if text contains any deny-listed terms (word-boundary, case-insensitive)."""
+    return any(p.search(text) for p in _DENY_PATTERNS)
+
+
+def enforce_size_limit(text: str) -> None:
+    """Raise ValueError if text exceeds max char limit."""
+    if len(text) > MAX_CHARS:
+        raise ValueError(f"Input too long ({len(text)} chars). Limit is {MAX_CHARS:,}.")
 
 
 def scrub_pii(text: str) -> str:
-    """Replace emails and phone numbers with redacted tags."""
-    cleaned = text
-    for pattern, replacement in PII_PATTERNS:
-        cleaned = pattern.sub(replacement, cleaned)
-    return cleaned
+    """Naively scrub personally identifiable info using regex patterns."""
+    scrubbed = text
+    for pattern in PII_PATTERNS:
+        scrubbed = pattern.sub("[REDACTED]", scrubbed)
+    return scrubbed
