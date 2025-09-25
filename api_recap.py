@@ -18,8 +18,8 @@ from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
 from pydantic import BaseModel, ValidationError
 
-# ✅ Use the richer root-level handlers, not backend stubs
-from code_handler import validate_snippet, extract_code_blocks, version_snippets, reconcile_intent, summarize_session
+# ✅ Richer root-level modules
+from code_handler import validate_snippet
 from diffcheck import diff_code_blocks
 from backend.filters import enforce_size_limit, contains_deny_terms, scrub_pii
 from backend.recap_formatter import format_recap
@@ -29,11 +29,10 @@ from backend.schema import Recap
 # Load environment variables
 load_dotenv()
 
-# App initialization
+# Flask app setup
 app = Flask(__name__)
 CORS(app)
 
-# Logging setup (ENV-controlled)
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "WARNING"))
 logger = logging.getLogger(__name__)
 
@@ -62,6 +61,7 @@ class HttpStatus:
 # Request schema
 class RecapRequest(BaseModel):
     chat_log: str
+    session_id: str = "default"  # allow namespacing in memory handler
 
 
 PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
@@ -111,14 +111,14 @@ def classify_with_bedrock(prompt: str) -> List[Dict[str, Any]]:
 
         response_text = payload["content"][0].get("text", "")
 
-        # 🔑 Harden: split into code vs text blocks
+        # Split into code vs text blocks
         blocks: List[Dict[str, Any]] = []
         parts = response_text.split("```")
         for i, part in enumerate(parts):
-            if i % 2 == 0:
+            if i % 2 == 0:  # text
                 if part.strip():
                     blocks.append({"type": "text", "content": part.strip()})
-            else:
+            else:  # code
                 blocks.append({"type": "code", "content": part.strip()})
 
         return blocks or [{"type": "text", "content": response_text}]
@@ -128,7 +128,7 @@ def classify_with_bedrock(prompt: str) -> List[Dict[str, Any]]:
         return [{"type": "text", "content": prompt}]
 
 
-def create_recap_from_log(chat_log: str) -> Dict[str, Any]:
+def create_recap_from_log(chat_log: str, session_id: str) -> Dict[str, Any]:
     """Process chat logs and generate a structured recap payload (JSON-serializable dict)."""
     if not chat_log or not isinstance(chat_log, str):
         raise ValueError("Invalid or missing 'chat_log' (must be a non-empty string).")
@@ -143,9 +143,8 @@ def create_recap_from_log(chat_log: str) -> Dict[str, Any]:
 
     validated_blocks: List[Dict[str, Any]] = []
     for block in blocks:
-        content = block.get("content", "")
         if block.get("type") == "code":
-            result = validate_snippet(content)
+            result = validate_snippet(block.get("content", ""))
             block["validation"] = result
         validated_blocks.append(block)
 
@@ -154,7 +153,7 @@ def create_recap_from_log(chat_log: str) -> Dict[str, Any]:
     recap_model: Recap = Recap.model_validate(recap_dict)
     recap_payload: Dict[str, Any] = format_recap(recap_model)
 
-    store_recap("last_recap", recap_payload)
+    store_recap("last_recap", recap_payload, session_id=session_id)
 
     return recap_payload
 
@@ -163,7 +162,7 @@ def process_recap_request(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
     """Encapsulate request handling to keep the route thin and testable."""
     try:
         parsed = RecapRequest(**data)
-        recap = create_recap_from_log(parsed.chat_log)
+        recap = create_recap_from_log(parsed.chat_log, parsed.session_id)
         return recap, HttpStatus.OK
 
     except ValidationError as ve:
