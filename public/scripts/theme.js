@@ -1,4 +1,3 @@
-
 const THEME_KEY = 'theme';
 
 export function initThemeToggle(toggleEl) {

@@ -7,8 +7,8 @@ export async function getRecap(chatLog) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      chat_log: chatLog
-    })
+      chat_log: chatLog,
+    }),
   });
 
   const data = await response.json();

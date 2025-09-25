@@ -1,4 +1,3 @@
-
 export function setupDragDrop(dropZoneEl, fileInputEl, handleFile) {
   function preventDefaults(e) {
     e.preventDefault();
@@ -22,12 +21,16 @@ export function setupDragDrop(dropZoneEl, fileInputEl, handleFile) {
     }
   }
 
-  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((eventName) => {
     dropZoneEl.addEventListener(eventName, preventDefaults, false);
   });
 
-  ['dragenter', 'dragover'].forEach(e => dropZoneEl.addEventListener(e, highlight));
-  ['dragleave', 'drop'].forEach(e => dropZoneEl.addEventListener(e, unhighlight));
+  ['dragenter', 'dragover'].forEach((e) =>
+    dropZoneEl.addEventListener(e, highlight)
+  );
+  ['dragleave', 'drop'].forEach((e) =>
+    dropZoneEl.addEventListener(e, unhighlight)
+  );
   dropZoneEl.addEventListener('drop', handleDrop);
 
   fileInputEl.addEventListener('change', (e) => {

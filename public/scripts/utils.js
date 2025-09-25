@@ -1,4 +1,3 @@
-
 export function setStatus(message, isError = false) {
   const statusRegion = document.getElementById('status');
   statusRegion.textContent = message;
