@@ -1,58 +1,55 @@
+# backend/diffcheck.py
 from __future__ import annotations
-
 from typing import Any, Dict, List
+from backend.schema import EnrichedSnippet, Recap
 
 
 def diff_code_blocks(blocks: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    Pick one 'final' code block and mark the rest as rejected.
-    Returns all fields required by the Recap schema.
-
-    Args:
-        blocks: A list of dictionaries representing code blocks.
-                Each must have a "content" key and a "validation" flag.
-
-    Returns:
-        A dictionary with all required Recap fields:
-            - "final": The content of the first valid code block, or None if none found.
-            - "rejected_versions": A list of rejected code blocks with reasons.
-            - "summary": A basic summary of the processing
-            - "aha_moments": Empty list for now
-            - "quality_flags": Basic quality assessment
+    Pick one 'final' code block, mark the rest as rejected.
+    Returns a dict matching the Recap schema.
     """
-    final: str | None = None
-    rejected: List[Dict[str, str]] = []
+    final: EnrichedSnippet | None = None
+    rejected_versions: List[EnrichedSnippet] = []
 
-    for block in blocks:
-        if block.get("validation"):
+    for i, block in enumerate(blocks):
+        snippet = EnrichedSnippet(
+            version=i + 1,
+            snippet_id=block.get("snippet_id", f"snippet_{i+1}"),
+            content=block.get("content", ""),
+            diff_summary="No change",  # real diffing logic could go here
+            validation=block.get("validation", {"status": "unknown"}),
+        )
+
+        if block.get("validation", {}).get("status") == "valid":
             if final is None:
-                final = block["content"]
+                final = snippet
             else:
-                rejected.append({"code": block["content"], "reason": "Extra snippet"})
+                snippet.validation["reason"] = "Extra snippet"
+                rejected_versions.append(snippet)
         else:
-            rejected.append(
-                {"code": block.get("content", ""), "reason": "Invalid Python"}
-            )
+            snippet.validation["reason"] = "Invalid Python"
+            rejected_versions.append(snippet)
 
-    # Generate a basic summary
-    if final:
-        summary = f"What You Built: Found valid code snippet. {len(rejected)} rejected versions."
-    else:
-        summary = f"What You Built: No valid code found. {len(rejected)} rejected versions."
+    summary = (
+        f"What You Built: Found valid code snippet. {len(rejected_versions)} rejected versions."
+        if final
+        else f"What You Built: No valid code found. {len(rejected_versions)} rejected versions."
+    )
 
-    # Basic quality flags
-    quality_flags = []
-    if len(rejected) > 0:
+    quality_flags: List[str] = []
+    if rejected_versions:
         quality_flags.append("⚠️ Some code blocks failed validation")
     if final:
         quality_flags.append("✅ Valid code snippet identified")
     else:
         quality_flags.append("❌ No valid code found")
 
-    return {
-        "final": final,
-        "rejected_versions": rejected,
-        "summary": summary,
-        "aha_moments": [],  # Empty for now, will be populated by Bedrock classification later
-        "quality_flags": quality_flags,
-    }
+    return Recap(
+        final=final,
+        rejected_versions=rejected_versions,
+        summary=summary,
+        aha_moments=[],
+        quality_flags=quality_flags,
+    ).model_dump()
+
