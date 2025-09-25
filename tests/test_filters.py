@@ -1,7 +1,7 @@
 # backend/filters.py
 import re
 
-# Expanded deny-listed terms for MVP guardrails
+# Expanded deny-listed terms (MVP guardrails)
 DENY_TERMS = [
     "api_key",
     "password",
@@ -12,20 +12,30 @@ DENY_TERMS = [
 
 MAX_CHARS = 100_000  # ~20k tokens max
 
+# PII patterns: SSN, credit card, email, phone number
 PII_PATTERNS = [
     re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),  # SSN
-    re.compile(r"\b\d{16}\b"),             # credit card
+    re.compile(r"\b\d{16}\b"),             # naive credit card
     re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),  # email
     re.compile(r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b"),               # phone
 ]
 
-# Precompiled deny term patterns (case-insensitive, no word boundary for phrases)
-_DENY_PATTERNS = []
-for term in DENY_TERMS:
-    if " " in term or "/" in term:  # phrase or command-like
-        _DENY_PATTERNS.append(re.compile(re.escape(term), re.IGNORECASE))
-    else:
-        _DENY_PATTERNS.append(re.compile(rf"\b{re.escape(term)}\b", re.IGNORECASE))
+
+def _build_patterns():
+    """Build regex patterns for deny-listed terms."""
+    patterns = []
+    for term in DENY_TERMS:
+        if " " in term or "/" in term:
+            # Multi-word or command-like phrase → normalize whitespace
+            flexible = re.sub(r"\s+", r"\\s+", re.escape(term))
+            patterns.append(re.compile(flexible, re.IGNORECASE))
+        else:
+            # Single token → word boundary match
+            patterns.append(re.compile(rf"\b{re.escape(term)}\b", re.IGNORECASE))
+    return patterns
+
+
+_DENY_PATTERNS = _build_patterns()
 
 
 def contains_deny_terms(text: str) -> bool:
