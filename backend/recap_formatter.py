@@ -1,4 +1,4 @@
-from schema import Recap
+from backend.schema import Recap
 
 
 def format_recap(data: Recap) -> dict:

@@ -2,21 +2,21 @@ import pytest
 from backend.schema import Recap, RejectedVersion, validate_recap_output
 
 VALID_RECAP = {
+    "session_id": "test-session-123",
     "final": {
         "version": 2,
         "snippet_id": "snippet_2",
-        "content": "print('Goodbye')",
-        "diff_summary": "- print('Hello')\n+ print('Goodbye')",
+        "content": "print('Hello World')"
     },
-    "rejected": [
+    "rejected_versions": [
         {
-            "version": 1,
-            "snippet_id": "snippet_1",
-            "content": "print('Hello')",
-            "diff_summary": "No change",
+            "code": "print('Hello')",
+            "reason": "Incomplete implementation"
         }
     ],
-    "text_summary": "This is the final text.",
+    "summary": "This is the final summary.",
+    "aha_moments": ["Realized the importance of proper output formatting"],
+    "quality_flags": ["Well-structured session", "Clear progression"]
 }
 
 
@@ -24,29 +24,29 @@ def test_valid_recap_output():
     assert validate_recap_output(VALID_RECAP) is True
 
 
-def test_missing_final_raises():
+def test_missing_recap_field():
     invalid = VALID_RECAP.copy()
-    del invalid["final"]
-    with pytest.raises(ValueError, match="Missing recap field: final"):
+    del invalid["aha_moments"]
+    with pytest.raises(ValueError, match="Missing recap field: aha_moments"):
         validate_recap_output(invalid)
 
 
 def test_final_not_dict():
     invalid = VALID_RECAP.copy()
-    invalid["final"] = "not a dict"
+    invalid["final"] = "not a dict"  # String instead of dict
     with pytest.raises(ValueError, match="Final snippet must be a dict"):
         validate_recap_output(invalid)
 
 
-def test_rejected_not_list():
+def test_rejected_versions_not_list():
     invalid = VALID_RECAP.copy()
-    invalid["rejected"] = "not a list"
+    invalid["rejected_versions"] = "not a list"
     with pytest.raises(ValueError, match="Rejected must be a list"):
         validate_recap_output(invalid)
 
 
-def test_text_summary_not_string():
+def test_summary_not_string():
     invalid = VALID_RECAP.copy()
-    invalid["text_summary"] = None
-    with pytest.raises(ValueError, match="text_summary must be a string"):
+    invalid["summary"] = None
+    with pytest.raises(ValueError, match="summary must be a string"):
         validate_recap_output(invalid)
