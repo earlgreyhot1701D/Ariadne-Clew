@@ -21,7 +21,7 @@ agents:
     bedrock_agentcore:
       agent_id: agent-Ea1xEW6TfX
       agent_arn: arn:aws:bedrock-agentcore:us-east-1:833162255362:runtime/agent-Ea1xEW6TfX
-      agent_session_id: null
+      agent_session_id: test-session-12345678901234567890123456789
     codebuild:
       project_name: bedrock-agentcore-agent-builder
       execution_role: arn:aws:iam::833162255362:role/AmazonBedrockAgentCoreSDKCodeBuild-us-east-1-d4f0bc5a29
