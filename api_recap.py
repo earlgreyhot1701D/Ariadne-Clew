@@ -55,17 +55,19 @@ class RecapRequest(BaseModel):
     chat_log: str
 
 
+PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
+
 def load_prompts() -> str:
-    """Load system and classifier prompts from repo root."""
+    """Load system and classifier prompts from the prompts/ directory."""
     try:
-        system_preamble = Path("system_prompt.md").read_text(encoding="utf-8")
-        classifier_instructions = Path("classifier_prompt.md").read_text(
+        system_preamble = (PROMPTS_DIR / "system_prompt.md").read_text(encoding="utf-8")
+        classifier_instructions = (PROMPTS_DIR / "classifier_prompt.md").read_text(
             encoding="utf-8"
         )
         return f"{system_preamble}\n\n{classifier_instructions}"
     except FileNotFoundError as e:
         logger.critical(f"Prompt file missing: {e}")
-        raise RuntimeError("Required prompt file not found.") from e
+        raise RuntimeError(f"Required prompt file not found: {PROMPTS_DIR}") from e
 
 
 def classify_with_bedrock(prompt: str) -> List[Dict[str, Any]]:
