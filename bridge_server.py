@@ -4,6 +4,7 @@ from flask_cors import CORS
 import subprocess
 import json
 import logging
+import uuid
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend connection
@@ -41,7 +42,8 @@ def get_recap():
         # Get request data
         data = request.json
         chat_log = data.get('chat_log', '')
-        session_id = data.get('session_id', f'demo-{hash(chat_log) % 10000}')
+        # Generate proper session ID (AgentCore requires 33+ chars)
+        session_id = data.get('session_id', f'session-{uuid.uuid4()}')
 
         logger.info(f"Processing recap request for session: {session_id}")
         logger.info(f"Chat log length: {len(chat_log)} characters")
