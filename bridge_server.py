@@ -55,7 +55,7 @@ def get_recap():
                 "human_readable": "Please provide a chat transcript to analyze"
             }), 400
 
-        if len(chat_log) > 50000:  # Reasonable limit for demo
+        if len(chat_log) > 200000:  # 200KB limit for comprehensive recaps
             return jsonify({
                 "error": "chat_log too large",
                 "human_readable": "Chat transcript exceeds maximum length"

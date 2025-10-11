@@ -1,162 +1,197 @@
 import { getRecap } from './api_js.js';
-import { setStatus } from './utils.js';
-import {
-  getElement,
-  getValue,
-  setElementContent,
-  disableElement,
-  enableElement,
-  addClickListener,
-  addSubmitListener,
-} from './dom_js.js';
-import { initThemeToggle } from './theme.js';
-import { exportMarkdownFromRecap } from './exportMarkdown.js';
-import { setupDragDrop } from './dragDrop.js';
 
 let currentRecapData = null;
 
-async function handleRecapRequest(chatLog) {
-  const statusEl = getElement('status');
-  const outputEl = getElement('recap-output');
+// Simple status updater
+function setStatus(message, isError = false) {
+  const statusEl = document.getElementById('status');
+  if (!statusEl) return;
+  
+  statusEl.textContent = message;
+  statusEl.className = isError ? 'error' : 'loading';
+  statusEl.style.display = 'block';
+  
+  if (!isError && message.includes('success')) {
+    statusEl.className = 'success';
+    setTimeout(() => {
+      statusEl.style.display = 'none';
+    }, 3000);
+  }
+}
 
+// Populate split panels with results
+function displayResults(data) {
+  const humanPanel = document.querySelector('#humanOutput .panel-content');
+  const jsonPanel = document.querySelector('#jsonOutput .panel-content');
+  
+  if (!humanPanel || !jsonPanel) {
+    console.error('Output panels not found');
+    return;
+  }
+  
+  // Clear empty states
+  humanPanel.innerHTML = '';
+  jsonPanel.innerHTML = '';
+  
+  // Format human-readable output
+  const humanReadable = data.human_readable || 'Analysis complete';
+  humanPanel.innerHTML = `<div style="line-height: 1.8;">${humanReadable}</div>`;
+  
+  // Format JSON output
+  const jsonData = data.raw_json || data;
+  jsonPanel.textContent = JSON.stringify(jsonData, null, 2);
+  
+  // Enable action buttons
+  document.getElementById('copy-btn').disabled = false;
+  document.getElementById('export-md').disabled = false;
+}
+
+// Clear output panels
+function clearResults() {
+  const humanPanel = document.querySelector('#humanOutput .panel-content');
+  const jsonPanel = document.querySelector('#jsonOutput .panel-content');
+  
+  if (humanPanel) {
+    humanPanel.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🧶</div>
+        <p>Your reasoning extraction will appear here</p>
+        <p style="font-size: 0.85rem;">Enter a chat transcript above to get started</p>
+      </div>
+    `;
+  }
+  
+  if (jsonPanel) {
+    jsonPanel.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">{ }</div>
+        <p>Machine-readable output will appear here</p>
+        <p style="font-size: 0.85rem;">Perfect for integrations and automation</p>
+      </div>
+    `;
+  }
+}
+
+// Handle form submission
+async function handleSubmit(e) {
+  e.preventDefault();
+  
+  const sessionInput = document.getElementById('session-id');
+  if (!sessionInput) return;
+  
+  const chatLog = sessionInput.value.trim();
+  
+  if (!chatLog) {
+    setStatus('Please enter a chat transcript', true);
+    return;
+  }
+  
   try {
-    setStatus('Generating recap...');
-    disableElement('recap-form');
-
+    setStatus('🔄 Processing transcript...');
+    
+    // Disable form during processing
+    const submitBtn = document.getElementById('submit-btn');
+    if (submitBtn) submitBtn.disabled = true;
+    
+    // Call API
     const data = await getRecap(chatLog);
     currentRecapData = data;
-
-    // Display the recap
-    const humanReadable = data.human_readable || 'No summary available';
-    const rawJson = JSON.stringify(data.raw_json, null, 2);
-
-    outputEl.innerHTML = `
-      <h3>Summary</h3>
-      <p>${humanReadable}</p>
-      <h3>Raw Data</h3>
-      <pre>${rawJson}</pre>
-    `;
-
-    setStatus('Recap generated successfully!');
-    enableElement('copy-btn');
-    enableElement('export-md');
+    
+    // Display results
+    displayResults(data);
+    setStatus('✅ Extraction complete!');
+    
   } catch (error) {
-    // Provide specific error messages based on error type
-    let errorMessage;
-
+    console.error('Error:', error);
+    clearResults();
+    
+    let errorMessage = '❌ ';
     if (error.message.includes('Failed to fetch')) {
-      errorMessage = 'Connection failed. Make sure the API server is running on port 5000.';
-    } else if (error.message.includes('Invalid request format')) {
-      errorMessage = 'Request validation failed. Please check your input format.';
-    } else if (error.message.includes('Input too large')) {
-      errorMessage = 'Input exceeds size limit. Please reduce the chat log length.';
-    } else if (error.message.includes('unsafe terms')) {
-      errorMessage = 'Input contains prohibited content. Please review and modify your text.';
-    } else if (error.message.includes('HTTP 400')) {
-      errorMessage = 'Request error. Please check your input and try again.';
+      errorMessage += 'Connection failed. Is bridge_server.py running?';
     } else if (error.message.includes('HTTP 500')) {
-      errorMessage = 'Server error. The classification service may be unavailable.';
-    } else if (error.message.includes('HTTP 415')) {
-      errorMessage = 'Content type error. This should not happen - please report this issue.';
+      errorMessage += 'Server error. Check AgentCore connection.';
     } else {
-      // Fallback for unexpected errors
-      errorMessage = `Unexpected error: ${error.message}`;
+      errorMessage += error.message;
     }
-
+    
     setStatus(errorMessage, true);
-    outputEl.innerHTML = '';
-    currentRecapData = null;
+    
   } finally {
-    enableElement('recap-form');
+    // Re-enable form
+    const submitBtn = document.getElementById('submit-btn');
+    if (submitBtn) submitBtn.disabled = false;
   }
 }
 
-async function handleFileUpload(file) {
-  try {
-    const text = await file.text();
-    const jsonData = JSON.parse(text);
-
-    // Extract chat log from JSON - adjust this based on your JSON structure
-    let chatLog = '';
-    if (typeof jsonData === 'string') {
-      chatLog = jsonData;
-    } else if (jsonData.chat_log) {
-      chatLog = jsonData.chat_log;
-    } else if (jsonData.messages) {
-      chatLog = jsonData.messages
-        .map((msg) => `${msg.role}: ${msg.content}`)
-        .join('\n');
-    } else {
-      chatLog = JSON.stringify(jsonData);
-    }
-
-    await handleRecapRequest(chatLog);
-  } catch (error) {
-    setStatus(`Error processing file: ${error.message}`, true);
-  }
-}
-
-function copyRecapToClipboard() {
-  const outputEl = getElement('recap-output');
-  if (!outputEl.textContent.trim()) {
-    setStatus('No recap to copy', true);
+// Copy to clipboard
+function handleCopy() {
+  if (!currentRecapData) {
+    setStatus('No output to copy', true);
     return;
   }
-
-  navigator.clipboard
-    .writeText(outputEl.textContent)
-    .then(() => setStatus('Recap copied to clipboard!'))
-    .catch(() => setStatus('Failed to copy recap', true));
+  
+  const jsonPanel = document.querySelector('#jsonOutput .panel-content');
+  if (!jsonPanel) return;
+  
+  navigator.clipboard.writeText(jsonPanel.textContent)
+    .then(() => setStatus('📋 Copied to clipboard!'))
+    .catch(() => setStatus('Failed to copy', true));
 }
 
-function exportRecap() {
-  const outputEl = getElement('recap-output');
-  if (!outputEl.innerHTML.trim()) {
-    setStatus('No recap to export', true);
+// Export as markdown
+function handleExport() {
+  if (!currentRecapData) {
+    setStatus('No output to export', true);
     return;
   }
-
-  try {
-    exportMarkdownFromRecap(outputEl);
-    setStatus('Recap exported successfully!');
-  } catch (error) {
-    setStatus(`Export failed: ${error.message}`, true);
-  }
+  
+  const humanPanel = document.querySelector('#humanOutput .panel-content');
+  if (!humanPanel) return;
+  
+  const markdown = `# Ariadne Clew Recap\n\n${humanPanel.textContent}\n\n## Raw Data\n\n\`\`\`json\n${JSON.stringify(currentRecapData, null, 2)}\n\`\`\``;
+  
+  const blob = new Blob([markdown], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ariadne-recap.md';
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  setStatus('💾 Exported successfully!');
 }
 
-// Initialize the application
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('Ariadne Clew UI initialized');
+  
   // Form submission
-  addSubmitListener('recap-form', async (e) => {
-    e.preventDefault();
-    const sessionId = getValue('session-id');
-
-    if (!sessionId.trim()) {
-      setStatus('Please enter a session ID or upload a file', true);
-      return;
-    }
-
-    // For now, use session ID as chat log - replace with actual session lookup
-    await handleRecapRequest(`Session ID: ${sessionId}`);
-  });
-
+  const form = document.getElementById('recap-form');
+  if (form) {
+    form.addEventListener('submit', handleSubmit);
+  }
+  
   // Copy button
-  addClickListener('copy-btn', copyRecapToClipboard);
-
+  const copyBtn = document.getElementById('copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', handleCopy);
+    copyBtn.disabled = true;
+  }
+  
   // Export button
-  addClickListener('export-md', exportRecap);
-
-  // Theme toggle
-  const themeToggle = getElement('theme-toggle');
-  initThemeToggle(themeToggle);
-
-  // Drag and drop setup
-  const dropZone = getElement('drop-zone');
-  const fileInput = getElement('file-upload');
-  setupDragDrop(dropZone, fileInput, handleFileUpload);
-
-  // Initialize UI state
-  disableElement('copy-btn');
-  disableElement('export-md');
-  setStatus('Ready to generate recap');
+  const exportBtn = document.getElementById('export-md');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', handleExport);
+    exportBtn.disabled = true;
+  }
+  
+  // Drop zone (basic implementation)
+  const dropZone = document.getElementById('drop-zone');
+  if (dropZone) {
+    dropZone.addEventListener('click', () => {
+      setStatus('💡 Paste transcript in the field above', true);
+    });
+  }
+  
+  setStatus('Ready to extract reasoning');
 });
