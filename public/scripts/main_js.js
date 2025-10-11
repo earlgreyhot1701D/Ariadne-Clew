@@ -8,7 +8,7 @@ import {
   enableElement,
   addClickListener,
   addSubmitListener,
-} from './dom.js';
+} from './dom_js.js';
 import { initThemeToggle } from './theme.js';
 import { exportMarkdownFromRecap } from './exportMarkdown.js';
 import { setupDragDrop } from './dragDrop.js';
