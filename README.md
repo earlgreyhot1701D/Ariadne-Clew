@@ -61,31 +61,117 @@ It ingests raw session logs and produces a **structured recap** with:
 
 ## 🤖 Built with AWS AgentCore: True Agentic Behavior
 
-Ariadne Clew isn't just an API wrapper - it's a **reasoning agent** that demonstrates autonomous decision-making with AWS's latest agent infrastructure:
+Ariadne Clew isn't just an API wrapper - it's an **autonomous reasoning agent** that demonstrates true agentic behavior with AWS's agent infrastructure.
 
-### 🧠 **AgentCore Code Interpreter Integration**
-The AgentCore Code Interpreter allows AI agents to write, execute, and debug code securely in sandbox environments, enabling AC to:
-- **Validate code snippets** in isolated sandboxes
-- **Execute and test** candidate solutions
-- **Generate validation metadata** (works/broken/partial)
-- **Reconcile conflicts** between "user says final" vs "actually validates"
+### 🧠 **AgentCore Runtime Integration (✅ Production)**
 
-**For the hackathon MVP**, AgentCore Code Interpreter validates snippets found in chats - showing developers what actually runs and surfacing conflicts with their declared "finals."
+**What's Implemented:**
+Ariadne Clew uses AWS AgentCore Runtime with Bedrock for autonomous reasoning extraction:
 
-### 🧶 **AgentCore Memory Integration**
-- **Persists reasoning context** across sessions
-- **Recalls previous decisions**: *"Last session, you validated Snippet 3 as final"*
-- **Maintains session continuity** without heavyweight project management
+```python
+from bedrock_agentcore import BedrockAgentCoreApp
+from strands import Agent
 
-**AgentCore Memory is used lightly** to persist chosen baselines across sessions, laying the groundwork for long-term project recaps.
+app = BedrockAgentCoreApp()  # Real AgentCore Runtime
+agent = Agent()               # Strands orchestration
+
+@app.entrypoint
+def invoke(payload):
+    """Autonomous processing - no human intervention"""
+    result = agent(reasoning_prompt)  # Bedrock API call
+    return structured_recap
+```
+
+**Core Capabilities:**
+- **Autonomous classification**: Plain text vs code, no human input
+- **Reasoning extraction**: Identifies aha moments, design decisions, scope changes
+- **Conflict resolution**: Reconciles multiple "final" versions
+- **Quality assessment**: Flags issues in reasoning or structure
+- **Structured output**: Schema-validated JSON + human-readable summary
+
+**This meets AWS agent criteria:** ✅ Reasoning LLMs ✅ Autonomous execution ✅ AgentCore Runtime
+
+---
+
+### 🔍 **Code Validation & Future Enhancement**
+
+**MVP Implementation (✅ Production-Ready):**
+- **AST syntax validation**: Python code parsed for correctness
+- **Metadata capture**: Language, context, user-marked "final" status
+- **Version tracking**: Multiple iterations reconciled
+- **No execution**: Syntax checking only (safe by design)
+
+```python
+# Current implementation
+import ast
+
+def validate_snippet(code: str) -> bool:
+    """Validate Python syntax without execution"""
+    try:
+        ast.parse(code)
+        return True
+    except SyntaxError:
+        return False
+```
+
+**Post-MVP Enhancement (🔮 Architected):**
+AgentCore Code Interpreter integration ready:
+- Sandbox execution in isolated AWS environments
+- Runtime validation metadata (works/broken/partial)
+- Multi-language support (Python, JS, Bash, more)
+- Execution output capture and analysis
+- Resource usage tracking
+
+**Why MVP Approach:**
+Focus on autonomous reasoning extraction (the hard problem) while architecting for execution enhancement (the valuable addition).
+
+---
+
+### 🧶 **Session Persistence & Memory Architecture**
+
+**MVP Implementation (✅ Production-Ready):**
+- **Local file-based storage**: Simple, fast, debuggable
+- **Session organization**: `.cache/` directory by session_id
+- **History and replay**: All recaps persisted for reference
+- **Zero AWS infrastructure**: Works without setup
+
+```python
+# Current implementation
+from pathlib import Path
+import json
+
+def store_recap(session_id: str, recap: dict):
+    """Persist session recap to local filesystem"""
+    cache_dir = Path(".cache")
+    cache_dir.mkdir(exist_ok=True)
+    path = cache_dir / f"{session_id}.json"
+    path.write_text(json.dumps(recap, indent=2))
+```
+
+**Post-MVP Enhancement (🔮 Architected):**
+AgentCore Memory API integration ready:
+- **Cross-session semantic search**: "Show me all auth decisions"
+- **Context injection**: "Last session, you chose approach X because..."
+- **Distributed storage**: DynamoDB-backed, multi-user safe
+- **Automatic embeddings**: Titan or similar for semantic queries
+- **Team collaboration**: Shared reasoning context across developers
+
+**Why MVP Approach:**
+Local files enable rapid development and debugging. Architecture supports drop-in Memory API upgrade when needed.
+
+---
 
 ### 🤯 **Autonomous Decision-Making**
+
+**Core Agentic Capabilities:**
 - **Classifies** plain text vs code without human input
+- **Extracts** structured insights from unstructured conversations
 - **Resolves conflicts** when multiple "final" versions exist
 - **Flags quality issues** in reasoning or code structure
-- **Updates memory** based on validation outcomes
+- **Validates outputs** against strict schema (no hallucinations)
+- **Operates end-to-end** without human oversight during processing
 
-**This meets AWS agent criteria:** ✅ Reasoning LLMs ✅ Autonomous execution ✅ Tool integration
+**This is true autonomous operation:** User provides input → Agent processes → User receives structured output. Zero human in the loop.
 
 ---
 
@@ -132,40 +218,72 @@ That's the difference between a chat log and a decision artifact.
 
 ---
 
-## 🏗️ Technical Architecture: AWS-Native Agent Stack
+## 🗺️ Technical Architecture: AWS-Native Agent Stack
+
+### MVP Architecture (Production-Ready)
 
 ```
-[Chat Transcript]
-    ↓
-[S3 Trigger] → [Lambda Classifier]
-    ↓
-[Bedrock LLM] → Classify content → Structure reasoning
-    ↓
-[AgentCore Code Interpreter] → Validate snippets → Generate metadata
-    ↓
-[AgentCore Memory] → Store final decisions → Enable session continuity
-    ↓
-[API Gateway] ← [Human-Readable Recap]
+[User: Chat Transcript]
+         ↓
+[Frontend: Pastebox UI]
+         ↓
+[Bridge Server: Flask]
+         ↓
+[Input Filters: PII Scrub, Deny-list, Size Check]
+         ↓
+[AgentCore Runtime: BedrockAgentCoreApp]
+         ↓
+[Bedrock API: Claude Sonnet 3.5]
+         ↓
+[Agent: Autonomous Reasoning Extraction]
+         ↓
+[Schema Validation: Pydantic (extra="forbid")]
+         ↓
+[Dual Output: Human-Readable + Structured JSON]
+         ↓
+[Local Storage: File-based Session Cache]
+         ↓
+[Frontend Display: Split Panel View]
+```
+
+### Production Architecture (Post-MVP)
+
+```
+[S3 Upload Trigger]
+         ↓
+[Lambda: Input Validation]
+         ↓
+[AgentCore Runtime: Serverless]
+         ↓
+[Bedrock + Code Interpreter]
+         ↓
+[AgentCore Memory API: Semantic Context]
+         ↓
+[DynamoDB: Persistent Storage]
+         ↓
+[API Gateway: RESTful Access]
+         ↓
+[CloudWatch: Logging & Monitoring]
 ```
 
 ### Core Components:
-- **Bedrock Claude/Nova** for content classification and reasoning extraction
-- **AgentCore Code Interpreter** for secure code validation in sandboxed environments
-- **AgentCore Memory** for cross-session reasoning persistence
-- **S3 + Lambda** for scalable document processing
-- **API Gateway** for clean integration points
+
+**MVP (Built & Working):**
+- **AgentCore Runtime**: BedrockAgentCoreApp + Strands for agent orchestration
+- **Bedrock Claude Sonnet 3.5**: Autonomous reasoning extraction
+- **Flask Bridge Server**: Connects frontend to AgentCore CLI
+- **AST Code Validation**: Syntax checking without execution
+- **Local File Storage**: Session-based caching
+- **Pydantic Schema**: Strict validation with `extra="forbid"`
+
+**Post-MVP (Architected & Ready):**
+- **AgentCore Code Interpreter**: Sandbox execution in AWS
+- **AgentCore Memory API**: Cross-session semantic search
+- **S3 + Lambda**: Serverless scalability
+- **API Gateway**: Production-ready REST endpoints
+- **DynamoDB**: Distributed session storage
 
 *Built for production from day one. No shortcuts, no technical debt.*
-
-### MVP Scope Lock
-To ensure focus and reproducibility, MVP scope is frozen in [MVP_ROADMAP.md](./MVP_ROADMAP.md).
-Inspect it directly:
-```bash
-cat MVP_ROADMAP.md
-```
-
-**Note:** For the MVP, AgentCore Memory is used only to persist the chosen final snippet across sessions.
-Full memory features (multi-session reasoning threads, advanced recall) are post-MVP.
 
 ---
 
@@ -174,21 +292,26 @@ Full memory features (multi-session reasoning threads, advanced recall) are post
 Because moving fast shouldn't mean moving recklessly:
 
 ### **Input Filtering**
-- Character limits prevent token overflow
-- PII scrubbing (emails, phones, SSNs)
+- Character limits prevent token overflow (50K max)
+- PII scrubbing (emails, phones, SSNs) before Bedrock calls
 - Deny-list filtering for harmful content
 - Schema validation on all uploads
 
 ### **Output Validation**
-- Bedrock Guardrails with sub-second latency for harmful content detection
+- Bedrock Guardrails for harmful content detection
 - Strict JSON schema enforcement - no hallucinated prose
-- Confidence thresholds for factual grounding
-- Empty fields over speculation
+- `extra="forbid"` prevents unexpected fields
+- Empty arrays over speculation
+
+### **Code Safety**
+- No code execution in MVP (AST syntax checking only)
+- Sandbox isolation planned for Code Interpreter integration
+- Resource limits for production deployment
 
 ### **Model Selection Process**
 Evaluated Claude, Titan, and Nova on transcript classification:
-- **Claude Sonnet**: Best reasoning extraction, consistent JSON output
-- **Cost optimization**: Predictable token usage, hackathon-safe
+- **Claude Sonnet 3.5**: Best reasoning extraction, consistent JSON output
+- **Cost optimization**: Predictable token usage, hackathon-safe (~$0.003 per recap)
 - **Reliability**: Handles edge cases without hallucination
 
 *Every decision documented. Every guardrail tested.*
@@ -199,43 +322,80 @@ Evaluated Claude, Titan, and Nova on transcript classification:
 
 ### **1. Upload Transcript**
 ```bash
-# Any LLM export works
-curl -X POST /upload \
-  -F "file=@my_chatgpt_session.txt"
+# Paste any LLM export in the browser
+# - ChatGPT conversation exports
+# - Claude chat JSON files
+# - DeepSeek session logs
+# - Manual copy-paste from any LLM
 ```
 
 ### **2. Agent Processing (Autonomous)**
-- **Classifier**: Bedrock LLM extracts code vs reasoning
-- **Validator**: AgentCore Code Interpreter tests snippets
-- **Reconciler**: Agent resolves conflicts between versions
-- **Memory**: AgentCore stores final decision + rationale
+The agent operates completely autonomously:
+
+1. **Input Validation**: Filters scrub PII, check deny-list, enforce size limits
+2. **AgentCore Invocation**: Bridge server calls `agentcore invoke`
+3. **Bedrock Reasoning**: Claude Sonnet 3.5 extracts structured insights
+4. **Classification**: Agent identifies code vs reasoning, tags intent
+5. **Validation**: AST parsing checks code syntax
+6. **Reconciliation**: Agent resolves conflicts between versions
+7. **Schema Enforcement**: Pydantic validates structure, rejects hallucinations
+8. **Storage**: Session recap persisted to local files
+
+**Total time: 3-5 seconds. Zero human intervention.**
 
 ### **3. Human-Readable Recap**
 **MVP Output**: Clean, scannable recap with action items
+
 ```markdown
 ## Session Recap: ac-session-042
 
-### 🎯 What You Built
-**Final Code**: Iterative Fibonacci implementation
-✅ **Validated**: Runs successfully, O(n) time complexity
-**Why This Version**: Chosen for performance over recursive approach
+### 🎯 Summary
+Built iterative Fibonacci implementation, chose performance over elegance.
+Realized recursion would timeout on large inputs. Final solution is O(n).
 
 ### 💡 Key Insights
 - Realized recursion would timeout on large inputs
 - Performance matters more than code elegance for this use case
+- O(n) iterative approach beats O(2^n) recursive
 
-### 🚫 What Didn't Work
-- Recursive implementation: O(2^n) performance issue
-- Initial while-loop approach: Off-by-one errors
+### 🧩 Design Decisions
+- Chose iterative over recursive for performance
+- Prioritized speed over code brevity
+- Added memoization consideration for future
 
-### 📝 Next Session Reminder
-Your chosen solution + efficiency reasoning stored for continuity
+### 📝 MVP Changes
+- Switched from recursive to iterative approach mid-session
+- Performance became primary decision factor
+
+### ⭐ Post-MVP Ideas
+- Add memoization layer for caching
+- Consider generator pattern for memory efficiency
+
+### 📊 Code Snippets
+**Snippet 1** (Python, ✅ Valid Syntax)
+```python
+def fibonacci(n):
+    if n <= 1:
+        return n
+    a, b = 0, 1
+    for _ in range(2, n+1):
+        a, b = b, a + b
+    return b
+```
+Context: Final iterative solution, O(n) time complexity
+
+### ⚠️ Quality Flags
+- Clear performance reasoning documented
+- Good progression from recursive to iterative
 ```
 
-**Raw JSON Available**: Via `/api/recap/{session_id}/raw` for integrations
+**Raw JSON Available**: Via split panel view for programmatic access
 
 ### **4. Session Continuity**
-Next upload recalls: *"Last session: You chose iterative Fibonacci for performance. Continue?"*
+Recap stored in `.cache/` directory for:
+- Historical reference
+- Pattern analysis
+- Future context injection (with Memory API)
 
 ---
 
@@ -257,30 +417,47 @@ You can use it to:
 
 The current MVP proves the concept. Future iterations serve the community:
 
-### **Phase 2: Developer Integration**
+### **Phase 2: AgentCore Tools Integration**
+**Code Interpreter:**
+- Sandbox execution for actual code validation
+- Runtime error detection and debugging
+- Multi-language support (Python, JS, Bash, more)
+- Execution output capture
+
+**Memory API:**
+- Cross-session semantic search: "Find all auth decisions"
+- Context injection: "Last time you chose X because..."
+- Team workspaces with shared context
+- Automatic embedding generation for search
+
+### **Phase 3: Developer Integration**
 - VS Code extension for live session capture
 - GitHub integration for context-rich commits
 - Slack/Discord bots for team reasoning threads
+- CLI tool for local development workflows
 
-### **Phase 3: Project Mode & Advanced Analysis**
+### **Phase 4: Project Intelligence**
+
 **Current MVP**: Single recap, flat list of snippets + decisions
-**Future (Paid Tier)**: Smart file/module grouping and project-level insights
 
-- **Interactive Recap Dashboard**: Rich UI with code syntax highlighting, diff views, decision timelines
-- **Multi-file awareness**: "This snippet belongs in `utils.py`, this one is part of `app.js`"
-- **Export Options**: Markdown for README, JSON for integrations, PDF for documentation
+**Future (Paid Tier)**: Smart project-level insights
+
+- **Interactive Recap Dashboard**: Rich UI with syntax highlighting, diff views, decision timelines
+- **Multi-file awareness**: "This snippet belongs in `utils.py`, this one is `app.js`"
+- **Export Options**: Markdown for README, JSON for integrations, PDF for docs
 - **Visual Decision Trees**: See how reasoning evolved through iterations
 - **Project-level recaps**: Cross-session reasoning evolution tracking
 - **Module-specific context**: Decisions grouped by component/feature
 - **Dependency mapping**: Understanding how reasoning connects across files
-- **Semantic search** across all stored decisions and code contexts
+- **Semantic search**: Query all stored decisions and code contexts
 
 *This transforms AC from "chat cleanup" to "project reasoning intelligence."*
 
-### **Phase 4: Community & Collaboration**
+### **Phase 5: Community & Collaboration**
 - Public reasoning artifact sharing
-- Team workspaces for shared context
+- Template library for common workflows
 - Integration marketplace for specialized tools
+- Team workspaces for shared context
 
 *Built with the indie community, for the indie community.*
 
@@ -318,49 +495,62 @@ My audience isn't enterprise procurement teams. It's:
 ### **File Structure**
 ```
 ariadne-clew/
-├── lambda_classifier.py      # AgentCore entry point
-├── code_handler.py          # Code Interpreter integration
-├── memory_handler.py        # AgentCore Memory wrapper
-├── schema.py                # Output validation
-├── diffcheck.py             # Version reconciliation
-├── guardrails/              # Input/output filters
-├── tests/                   # Full coverage suite
-└── public/                  # Minimal demo frontend
+├── backend/
+│   ├── agent.py              # AgentCore Runtime integration
+│   ├── bridge_server.py      # Flask API bridge
+│   ├── filters.py            # Input safety layer
+│   ├── code_handler.py       # AST validation
+│   ├── memory_handler.py     # Local file storage
+│   ├── schema.py             # Pydantic models
+│   ├── recap_formatter.py    # Output generation
+│   └── diffcheck.py          # Version reconciliation
+├── prompts/
+│   └── classifier_prompt.md  # Reasoning extraction prompt
+├── public/
+│   ├── index.html            # Minimal pastebox UI
+│   ├── scripts/              # Frontend JavaScript
+│   └── styles/               # Clean CSS layout
+├── tests/                    # 56 comprehensive tests
+├── docs/
+│   ├── ARCHITECTURE.md       # Technical deep dive
+│   └── TROUBLESHOOTING.md    # Setup & debugging guide
+└── README.md                 # This file
 ```
 
 ### **Key Features**
 - ✅ **Model-agnostic input** (ChatGPT, Claude, DeepSeek exports)
-- ✅ **Secure code execution** via AgentCore Code Interpreter
-- ✅ **Cross-session memory** via AgentCore Memory
+- ✅ **Autonomous agent operation** via AgentCore Runtime
+- ✅ **AST code validation** (safe syntax checking)
+- ✅ **Local session storage** (fast development)
 - ✅ **Production guardrails** with Bedrock protections
 - ✅ **Structured output** with schema validation
-- ✅ **Autonomous processing** - no human input required
+- ✅ **Comprehensive tests** (56 pytest cases)
 
 ### **Prompt Engineering: The Agent's Brain**
 
 The classification intelligence lives in `prompts/classifier_prompt.md` - a carefully engineered prompt that transforms chaotic chat logs into structured reasoning artifacts:
 
-```markdown
-## Core Classification Framework
+**Core Classification Framework:**
 - **Aha moments**: Key insights or shifts in understanding
 - **MVP changes**: Edits, pivots, commitments affecting scope
 - **Scope creep**: Evidence of expanding beyond MVP
+- **Design tradeoffs**: Decision rationale and architectural choices
 - **README notes**: Facts/concepts that belong in documentation
 - **Post-MVP ideas**: Explicitly deferred features
 - **Quality flags**: Warnings or praise on session structure
-```
 
-**Why This Matters for Agents:**
-- **Structured reasoning extraction** from unstructured input
-- **Consistent JSON schema** enforcement across all LLM providers
-- **Anti-hallucination guardrails**: Empty arrays over speculation
-- **Tunable intelligence**: Add new classification fields as needs evolve
+**Anti-Hallucination Guardrails:**
+- Do not generate prose or markdown — only JSON
+- Do not include speculative content
+- Return valid arrays, even if empty
+- Use clear, actionable language
 
 *The prompt is the product.* This agent's reasoning capability comes from deliberate prompt architecture, not just API calls.
 
 ### **Testing & QA**
 - pytest coverage for all agent components
 - Mocked AgentCore calls for local development
+- Real Bedrock integration tests for validation
 - Pre-commit hooks for code quality
 - Production-ready error handling
 
@@ -374,21 +564,31 @@ Every time you've lost context in a messy chat. Every time you couldn't remember
 
 That's the problem Ariadne Clew solves.
 
-**Technical Excellence:**
-- Real AgentCore integration, not just API calls
-- Autonomous agent behavior with memory persistence
+### **Technical Excellence:**
+- Real AgentCore Runtime integration (verified in code)
+- Autonomous agent behavior without human oversight
 - Production-ready with comprehensive guardrails
-- Reproducible architecture on AWS infrastructure
+- Strategic MVP scoping shows engineering maturity
+- Clear architecture for post-MVP enhancements
 
-**Real-World Impact:**
+### **Real-World Impact:**
 - Serves underserved but growing builder community
 - Measurable value: time recovery + knowledge transfer
 - Scales with the AI-native development trend
+- $0.003 per recap = indie builder economics
 
-**Differentiated Approach:**
+### **Differentiated Approach:**
 - First reasoning preservation agent for chat-driven workflows
 - Model-agnostic in a vendor-locked world
+- Honest MVP positioning over feature bloat
 - Built by indie operator who lives the problem daily
+
+### **Proof Points:**
+- 4 weeks from concept to autonomous agent
+- 56 comprehensive tests
+- Real AgentCore + Bedrock integration
+- Production-ready error handling
+- Clear roadmap with strategic scoping
 
 ---
 
@@ -400,10 +600,17 @@ From [Beyond the Docket](https://sites.google.com/view/beyondthedocket) (making 
 
 Ariadne Clew continues that mission: **making reasoning visible in the age of AI-assisted building.**
 
-*No formal AI training. No CS degree. Started exploring coding with LLMs in January 2025, first working builds by July.*
-**Just a builder who sees patterns and solves problems.**
+**Development Journey:**
+- Started exploring AI-assisted development: July 2025
+- First Bedrock API calls on other projects: July 2025
+- AriadneClew repository created: September 14, 2025
+- Production-ready autonomous agent: October 2, 2025
 
-**Connect:** [lsjcordero@gmail.com] | [ThreadKeeper.io](https://threadkeeper.io) | [The Forum Files](https://theforumfiles.substack.com)
+**Timeline: 3 weeks from concept to working agent**, building on 4 months of AI/LLM learning.
+
+*No formal AI training. No CS degree. Just a builder who sees patterns and solves problems.*
+
+**Connect:** [lsjcordero@gmail.com] | [La Shara Cordero](https://www.linkedin.com/in/la-shara-cordero-a0017a11/) | [ThreadKeeper.io](https://threadkeeper.io) | [The Forum Files](https://theforumfiles.substack.com)
 
 ---
 
@@ -421,8 +628,112 @@ Ariadne Clew exists to serve builders first. It obsesses over clarity and contin
 
 ---
 
-*Built September 2025 for AWS Agent Hackathon*
-*Hackathon prototype → Production-ready foundation*
+## 👤 About This Project
+
+**Solo builder** | 3 weeks part-time | First AgentCore project
+
+**Approach:** Foundation-first. Real AWS integration over mocked features. 
+Production architecture over quick hacks. One autonomous agent done right.
+
+**What I prioritized:**
+- ✅ Real AgentCore Runtime integration
+- ✅ Autonomous operation (zero human in loop)
+- ✅ Dual output format (human + machine)
+- ✅ Production-grade error handling
+- ✅ Comprehensive testing (56 tests)
+
+**What I scoped out:**
+- ⏭️ Code Interpreter execution (AST validation for MVP)
+- ⏭️ Memory API (local files sufficient for demo)
+- ⏭️ Serverless deployment (local-first for iteration speed)
+
+---
+
+## 🏆 Builder Background
+
+**La Shara Cordero** | Indie Builder | Learning in Public
+
+**Previous win:** 2nd place (out of 14 teams), Cal Poly DxHub AI Summer Camp 2024  
+*Team project:* [Customized AI Tutoring System](https://github.com/earlgreyhot1701D/team-110-customized-tutoring)
+
+**This project:** First solo agent build, first AWS hackathon  
+*Challenge:* Level up from team collaboration to solo execution while learning AWS ecosystem
+
+---
+
+## 🤝 Development Approach
+
+Built with AI pair programming (ChatGPT + Claude as my "6th person off the bench"). 
+All architectural decisions, scope choices, and final implementations reviewed 
+and owned by me. AI served as implementation assistant, documentation search, 
+and thinking partner.
+
+**Modern solo development = Knowing when to build from scratch vs when to 
+orchestrate and validate.**
+
+---
+
+## 🦆 About the Duck
+
+My team's 2nd place finish at [Cal Poly's AI Summer Camp](https://dxhub.calpoly.edu/ccc-ai-summer-camp/) 
+(rubber duck themed) came with a rubber duck. That duck supervised this entire build.
+
+Rubber duck debugging: real.  
+Rubber duck good luck: apparently also real.
+
+---
+
+## 💭 The Meta
+
+This project about preserving reasoning from AI conversations was itself built 
+through extensive AI conversations with ChatGPT and Claude. The irony is not 
+lost on me—these are exactly the kinds of discussions Ariadne Clew was designed 
+to preserve.
+
+*Should I have been running Ariadne Clew on itself while building it? Probably. 
+Did I? No. Do I see the problem? Yes. Will I fix it? That's post-MVP.*
+
+---
+
+## 🎯 Philosophy
+
+**Better to ship one thing that works than promise three things half-built.**
+
+Foundation-first approach. Production-ready core over feature bloat. Honest 
+scoping over over-promising. This is a **v1**, not a **v-final**.
+
+---
+
+## 🚀 What's Next
+
+**Post-hackathon roadmap:**
+- [ ] Code Interpreter integration (move from AST to execution)
+- [ ] Memory API for cross-session context
+- [ ] Serverless deployment (Lambda + S3 + API Gateway)
+- [ ] GitHub Action integration
+- [ ] VS Code extension
+
+**But first:** Ship this. Get feedback. Learn. Iterate.
+
+---
+
+## 📬 Connect
+
+**GitHub:** [github.com/earlgreyhot1701D](https://github.com/earlgreyhot1701D)  
+**Website:** [ThreadKeeper.io](https://threadkeeper.io)  
+**LinkedIn:** [La Shara Cordero](https://www.linkedin.com/in/la-shara-cordero-a0017a11/)
+**Email:** lsjcordero@gmail.com
+
+Built with ☕, stubbornness, and a rubber duck from AI camp.
+
+---
+
+*Built September 2025 for AWS Agent Hackathon*  
+*Repository created: September 14, 2025*  
+*Production-ready: October 2, 2025*  
+*3 weeks from concept to autonomous reasoning agent*
+
+---
 
 ## License
 
