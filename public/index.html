@@ -1,623 +1,140 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ariadne Clew - Don't commit without context</title>
-  <link rel="stylesheet" href="styles/style.css" />
-  <link rel="stylesheet" href="styles/theme.css" />
-  <link rel="stylesheet" href="styles/responsive.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ThreadKeeper | Your AI project memory</title>
+  <meta name="description" content="ThreadKeeper is a CLI style context engine for builders. Capture the why, not just the what. DOS inspired design with clean accessibility.">
+  <link rel="canonical" href="https://threadkeeper.io/">
+  <meta name="theme-color" content="#121212">
   <style>
-    /* POLISHED UI STYLES */
-    
-    * {
-      box-sizing: border-box;
+    :root {
+      --bg: #121212;
+      --panel: #1E1E1E;
+      --text: #E0E0E0;
+      --neon: #39FF14;
+      --cyan: #00FFFF;
+      --amber: #FFB000;
+      --muted: #9a9a9a;
+      --link: #00FFFF;
+      --link-visited: #39FF14;
+      --focus: #FFB000;
     }
-
+    html, body {
+      height: 100%;
+    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      line-height: 1.6;
+      margin: 0;
       background: var(--bg);
       color: var(--text);
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      line-height: 1.6;
     }
-
-    .container {
-      max-width: 1400px;
+    a { color: var(--link); text-decoration: none; border-bottom: 1px dotted var(--link); }
+    a:visited { color: var(--link-visited); }
+    a:focus, a:hover { outline: 2px solid var(--focus); outline-offset: 2px; }
+    .wrap {
+      max-width: 960px;
       margin: 0 auto;
-      padding: 1rem;
-      animation: fadeIn 0.6s ease-out;
+      padding: 2rem 1rem 4rem;
     }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+    header nav a {
+      margin-right: 1rem;
     }
-
-    /* Hero with animated gradient */
-    header.hero {
-      text-align: center;
-      padding: 3rem 2rem;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      background-size: 200% 200%;
-      animation: gradientShift 8s ease infinite;
-      color: white;
-      margin-bottom: 2rem;
-      border-radius: 16px;
-      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
-      position: relative;
-      overflow: hidden;
-    }
-
-    @keyframes gradientShift {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-
-    /* Subtle thread animation overlay */
-    header.hero::before {
-      content: "🧶";
-      position: absolute;
-      font-size: 8rem;
-      opacity: 0.05;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(15deg);
-      pointer-events: none;
-    }
-
-    header.hero h1 {
-      font-size: 3rem;
-      margin: 0 0 0.5rem 0;
-      font-weight: 700;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      position: relative;
-      z-index: 1;
-    }
-
-    .subtitle {
-      font-size: 1.3rem;
-      opacity: 0.95;
-      margin: 0 0 0.5rem 0;
-      font-weight: 500;
-      position: relative;
-      z-index: 1;
-    }
-
-    .tagline {
-      font-style: italic;
-      opacity: 0.85;
-      font-size: 1.1rem;
-      margin-top: 0.5rem;
-      font-weight: 300;
-      position: relative;
-      z-index: 1;
-    }
-
-    /* Animated status badges */
-    .badges {
-      margin-top: 1.5rem;
-      position: relative;
-      z-index: 1;
-    }
-
-    .badge {
-      display: inline-block;
-      background: rgba(255,255,255,0.25);
-      padding: 0.5rem 1.2rem;
-      border-radius: 25px;
-      font-size: 0.85rem;
-      margin: 0.5rem 0.25rem;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.3);
-      transition: all 0.3s ease;
-      animation: slideInUp 0.5s ease-out backwards;
-    }
-
-    .badge:nth-child(1) { animation-delay: 0.1s; }
-    .badge:nth-child(2) { animation-delay: 0.2s; }
-    .badge:nth-child(3) { animation-delay: 0.3s; }
-
-    @keyframes slideInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .badge:hover {
-      background: rgba(255,255,255,0.35);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-
-    /* Input section with smooth entrance */
-    form#recap-form {
+    .terminal {
       background: var(--panel);
-      padding: 2rem;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      margin-bottom: 2rem;
-      animation: slideIn 0.6s ease-out 0.3s backwards;
-      border: 1px solid var(--border);
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 1.25rem;
+      box-shadow: 0 0 0 1px #000 inset;
     }
-
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateX(-20px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
-
-    label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      color: var(--text);
-      font-size: 0.95rem;
-    }
-
-    input[type="text"], textarea {
-      width: 100%;
-      padding: 0.9rem;
-      border: 2px solid var(--border);
-      border-radius: 10px;
-      font-size: 1rem;
-      background: var(--input-bg);
-      color: var(--text);
-      transition: all 0.3s ease;
-      font-family: inherit;
-    }
-
-    textarea {
-      min-height: 120px;
-      resize: vertical;
-    }
-
-    input[type="text"]:focus, textarea:focus {
-      outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-      transform: translateY(-1px);
-    }
-
-    .hint {
-      font-size: 0.85rem;
-      color: var(--muted);
-      margin-top: 0.5rem;
-    }
-
-    /* Button group with better spacing */
-    .actions {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1.5rem;
-      flex-wrap: wrap;
-    }
-
-    button {
-      padding: 0.9rem 1.8rem;
-      border: none;
-      border-radius: 10px;
-      font-weight: 600;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      flex: 1;
-      min-width: 140px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    button::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      transform: translate(-50%, -50%);
-      transition: width 0.6s, height 0.6s;
-    }
-
-    button:active::before {
-      width: 300px;
-      height: 300px;
-    }
-
-    #submit-btn {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-    }
-
-    #submit-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-    }
-
-    #submit-btn:active {
-      transform: translateY(0);
-    }
-
-    #copy-btn, #export-md {
-      background: var(--panel);
-      border: 2px solid var(--border);
-      color: var(--text);
-    }
-
-    #copy-btn:hover, #export-md:hover {
-      border-color: #667eea;
-      background: rgba(102, 126, 234, 0.05);
-      transform: translateY(-2px);
-    }
-
-    /* Enhanced drop zone */
-    #drop-zone {
-      margin-top: 1.5rem;
-      border: 2px dashed var(--border);
-      padding: 2.5rem;
-      text-align: center;
-      border-radius: 12px;
-      color: var(--muted);
-      transition: all 0.3s ease;
-      cursor: pointer;
-      background: var(--panel);
-    }
-
-    #drop-zone:hover {
-      border-color: #667eea;
-      background: rgba(102, 126, 234, 0.03);
-      color: #667eea;
-      transform: scale(1.01);
-    }
-
-    #drop-zone.highlight {
-      border-color: #667eea;
-      background: rgba(102, 126, 234, 0.1);
-      color: #667eea;
-      border-style: solid;
-    }
-
-    /* Improved status indicator */
-    #status {
-      padding: 1rem 1.5rem;
-      border-radius: 10px;
-      margin: 1rem 0;
-      text-align: center;
-      font-weight: 600;
-      display: none;
-      animation: slideDown 0.3s ease-out;
-    }
-
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    #status.loading {
-      display: block;
-      background: rgba(102, 126, 234, 0.1);
-      color: #667eea;
-      border: 2px solid rgba(102, 126, 234, 0.3);
-    }
-
-    #status.success {
-      display: block;
-      background: rgba(40, 167, 69, 0.1);
-      color: #28a745;
-      border: 2px solid rgba(40, 167, 69, 0.3);
-    }
-
-    #status.error {
-      display: block;
-      background: rgba(220, 53, 69, 0.1);
-      color: #dc3545;
-      border: 2px solid rgba(220, 53, 69, 0.3);
-    }
-
-    /* Enhanced split panel output */
-    .output-container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-      margin-top: 2rem;
-      animation: slideIn 0.6s ease-out 0.5s backwards;
-    }
-
-    @media (max-width: 1024px) {
-      .output-container {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .output-panel {
-      background: var(--panel);
-      border-radius: 16px;
-      padding: 0;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      min-height: 400px;
-      display: flex;
-      flex-direction: column;
-      border: 1px solid var(--border);
-      transition: all 0.3s ease;
-      overflow: hidden;
-    }
-
-    .output-panel:hover {
-      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-      transform: translateY(-2px);
-    }
-
-    .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1.5rem;
-      border-bottom: 2px solid var(--border);
-      background: rgba(102, 126, 234, 0.03);
-    }
-
-    .panel-title {
-      font-weight: 700;
-      font-size: 1.1rem;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .panel-icon {
-      font-size: 1.4rem;
-      animation: float 3s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
-    }
-
-    .panel-content {
-      flex: 1;
-      overflow-y: auto;
-      font-size: 0.95rem;
-      padding: 1.5rem;
-    }
-
-    /* Human readable styling */
-    #humanOutput .panel-content {
-      line-height: 1.8;
-    }
-
-    #humanOutput h2 {
-      color: #667eea;
-      font-size: 1.4rem;
+    .ascii {
+      color: var(--neon);
+      white-space: pre;
+      overflow-x: auto;
+      font-size: 14px;
+      line-height: 1.1;
       margin: 0 0 1rem 0;
     }
-
-    #humanOutput h3 {
-      color: var(--text);
-      font-size: 1.1rem;
-      margin: 1.5rem 0 0.8rem 0;
-      border-bottom: 2px solid var(--border);
-      padding-bottom: 0.5rem;
-    }
-
-    #humanOutput ul {
-      padding-left: 1.5rem;
-    }
-
-    #humanOutput li {
-      margin: 0.8rem 0;
-      position: relative;
-    }
-
-    #humanOutput li::marker {
-      color: #667eea;
-    }
-
-    #humanOutput strong {
-      color: #667eea;
+    .tagline {
+      color: var(--cyan);
       font-weight: 600;
+      margin: 0.5rem 0 1rem 0;
     }
-
-    /* JSON styling with syntax highlighting feel */
-    #jsonOutput .panel-content {
-      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-      font-size: 0.85rem;
-      white-space: pre-wrap;
-      background: rgba(0,0,0,0.03);
-      padding: 1.5rem;
-      border-radius: 8px;
-      line-height: 1.6;
-      color: #383a42;
-    }
-
-    /* Enhanced empty state */
-    .empty-state {
-      text-align: center;
-      padding: 4rem 2rem;
-      color: var(--muted);
-    }
-
-    .empty-state-icon {
-      font-size: 4rem;
-      margin-bottom: 1.5rem;
-      opacity: 0.4;
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 0.3; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(1.05); }
-    }
-
-    .empty-state p {
-      margin: 0.5rem 0;
-      font-size: 1rem;
-    }
-
-    .empty-state p:first-of-type {
-      font-weight: 600;
+    .desc {
       color: var(--text);
-      font-size: 1.1rem;
+      margin: 0 0 1rem 0;
     }
-
-    /* Animated loading spinner */
-    .spinner {
-      border: 3px solid rgba(102, 126, 234, 0.2);
-      border-top: 3px solid #667eea;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 0.8s linear infinite;
-      margin: 2rem auto;
+    .cta {
+      display: inline-block;
+      padding: 0.5rem 0.75rem;
+      background: transparent;
+      border: 1px solid var(--cyan);
+      border-radius: 6px;
+      text-decoration: none;
+      margin-right: 0.75rem;
     }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Footer */
+    .cta:hover { background: rgba(0,255,255,0.08); }
+    .muted { color: var(--muted); }
     footer {
-      text-align: center;
-      margin-top: 4rem;
-      padding: 2rem 1rem;
+      margin-top: 2rem;
       color: var(--muted);
-      font-size: 0.9rem;
-      animation: fadeIn 0.6s ease-out 0.8s backwards;
+      font-size: 0.95rem;
     }
-
-    .theme-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-      margin-bottom: 1rem;
-      padding: 0.5rem 1rem;
-      border-radius: 25px;
-      transition: all 0.3s ease;
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: auto;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
     }
-
-    .theme-toggle:hover {
+    .skip-link:focus {
+      position: static;
+      width: auto;
+      height: auto;
       background: var(--panel);
+      padding: 0.25rem 0.5rem;
+      border: 1px solid var(--focus);
+      border-radius: 4px;
     }
-
-    /* Scroll behavior */
-    html {
-      scroll-behavior: smooth;
-    }
-
-    /* Custom scrollbar */
-    ::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: var(--panel);
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--border);
-      border-radius: 5px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #667eea;
-    }
+    /* Future upgrade marker: replace system mono with IBM Plex Mono or Fira Code */
+    /* Future upgrade marker: move shared styles to /assets/styles.css */
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Hero Header -->
-    <header class="hero">
-      <h1>🧶 Ariadne Clew</h1>
-      <p class="subtitle">Autonomous Reasoning Preservation Agent</p>
-      <p class="tagline">"Don't commit without context."</p>
-      <div class="badges">
-        <span class="badge">✅ AgentCore Runtime</span>
-        <span class="badge">✅ Bedrock Claude 3.5</span>
-        <span class="badge">🤖 Autonomous Operation</span>
-      </div>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="wrap">
+    <header>
+      <nav aria-label="Primary">
+        <a href="/blog.html">Blog</a>
+        <a href="mailto:support@threadkeeper.io">Contact</a>
+      </nav>
     </header>
 
-    <!-- Input Form -->
-    <form id="recap-form">
-      <label for="session-id">📋 Chat Transcript or Session ID</label>
-      <input 
-        type="text" 
-        id="session-id" 
-        placeholder="Paste your chat transcript or enter session ID..." 
-        required 
-      />
-      <div class="hint">💡 Supports ChatGPT, Claude, DeepSeek, or any LLM chat export</div>
+    <main id="main" class="terminal" role="main">
+      
+<h1 style="color: var(--neon); font-size: 3rem; letter-spacing: 2px; text-align: center; margin-bottom: 1.5rem;">
+  THREADKEEPER
+</h1>
 
-      <div class="actions">
-        <button type="submit" id="submit-btn">🚀 Extract Reasoning</button>
-        <button type="button" id="copy-btn">📋 Copy Output</button>
-        <button type="button" id="export-md">💾 Export MD</button>
-      </div>
+      <p class="tagline">Don’t commit without context.</p>
+      <p class="desc">ThreadKeeper is a context engine for builders. It gives indie architect power users a lightweight way to snapshot versions, log insights, and rewind decisions. Inspired by DOS style terminals and built for AI era workflows. Capture the why, not just the what.</p>
+      <p style="margin: 2rem 0; text-align: center;">
+        <a class="cta" href="/blog.html" aria-label="Go to blog">Read the blog</a>
+        <a class="cta" href="mailto:support@threadkeeper.io" aria-label="Email support at ThreadKeeper">Email support</a>
+      </p>
+      <p class="muted">100 percent local in spirit. Zero fluff. Built for clarity.</p>
+    </main>
 
-      <div id="drop-zone">
-        📁 Or drag & drop your chat transcript file here
-      </div>
-    </form>
-
-    <!-- Status Indicator -->
-    <div id="status" role="status" aria-live="polite"></div>
-
-    <!-- Split Panel Output -->
-    <div class="output-container">
-      <!-- Human-Readable Panel -->
-      <div class="output-panel" id="humanOutput">
-        <div class="panel-header">
-          <div class="panel-title">
-            <span class="panel-icon">📖</span>
-            <span>Human-Readable Summary</span>
-          </div>
-        </div>
-        <div class="panel-content">
-          <div class="empty-state">
-            <div class="empty-state-icon">🧶</div>
-            <p>Your reasoning extraction will appear here</p>
-            <p style="font-size: 0.85rem;">Enter a chat transcript above to get started</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- JSON Panel -->
-      <div class="output-panel" id="jsonOutput">
-        <div class="panel-header">
-          <div class="panel-title">
-            <span class="panel-icon">🔧</span>
-            <span>Structured JSON</span>
-          </div>
-        </div>
-        <div class="panel-content">
-          <div class="empty-state">
-            <div class="empty-state-icon">{ }</div>
-            <p>Machine-readable output will appear here</p>
-            <p style="font-size: 0.85rem;">Perfect for integrations and automation</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Footer -->
     <footer>
-      <div class="theme-toggle" onclick="document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'">
-        🌓 Toggle Dark Mode
-      </div>
-      <p>Built with AWS AgentCore Runtime + Amazon Bedrock | AWS Agent Hackathon 2025</p>
-      <p>© 2025 La Shara Cordero | <a href="https://github.com/yourusername/ariadne-clew" style="color: #667eea; text-decoration: none;">GitHub</a></p>
+      <p style="margin: 2rem 0; text-align: center;">Flag planted August 26, 2025. <span aria-hidden="true">•</span> <a href="/sitemap.xml">Sitemap</a></p>
+      <!-- Future upgrade marker: add favicon and social meta preview image -->
+      <!-- Future upgrade marker: replace mailto with a form provider -->
     </footer>
   </div>
 
-  <!-- Scripts -->
-  <script type="module" src="scripts/api_js.js"></script>
-  <script type="module" src="scripts/dom_js.js"></script>
-  <script type="module" src="scripts/main_js.js"></script>
+<script type="text/javascript" src="/unprotected/back_to_spaceship.js?hash=4975d460e508829e8fb64d3962bc44ad35f3a95a"></script>
+
 </body>
 </html>
