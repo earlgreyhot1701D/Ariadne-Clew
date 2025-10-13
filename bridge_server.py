@@ -5,6 +5,8 @@ import subprocess
 import json
 import logging
 import uuid
+import os
+import sys
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend connection
@@ -12,6 +14,19 @@ CORS(app)  # Enable CORS for frontend connection
 # Configure logging for demo
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Get the full path to agentcore executable in venv
+# This ensures subprocess can find agentcore even without activated venv
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+VENV_SCRIPTS = os.path.join(SCRIPT_DIR, '.venv', 'Scripts')
+AGENTCORE_PATH = os.path.join(VENV_SCRIPTS, 'agentcore.exe')
+
+# Fallback: check if agentcore is in PATH
+if not os.path.exists(AGENTCORE_PATH):
+    AGENTCORE_PATH = 'agentcore'  # Try system PATH as fallback
+    logger.warning(f"agentcore.exe not found in venv, using PATH: {AGENTCORE_PATH}")
+else:
+    logger.info(f"Using agentcore from: {AGENTCORE_PATH}")
 
 @app.route('/', methods=['GET'])
 def serve_frontend():
@@ -29,7 +44,7 @@ def health_check():
     return jsonify({
         "status": "healthy",
         "service": "Ariadne Clew Bridge",
-        "agentcore_ready": True
+        "agentcore_ready": os.path.exists(AGENTCORE_PATH) if AGENTCORE_PATH.endswith('.exe') else True
     })
 
 @app.route('/v1/recap', methods=['POST'])
@@ -65,12 +80,13 @@ def get_recap():
         agentcore_payload = {"prompt": chat_log}
 
         cmd = [
-            'agentcore', 'invoke',
+            AGENTCORE_PATH,  # Use full path instead of just 'agentcore'
+            'invoke',
             json.dumps(agentcore_payload),
             '--session-id', session_id
         ]
 
-        logger.info(f"Executing AgentCore command: {' '.join(cmd[:3])}...")
+        logger.info(f"Executing AgentCore command: {cmd[0]} invoke...")
 
         # Execute with timeout for demo reliability
         result = subprocess.run(
@@ -142,25 +158,28 @@ def get_status():
     """Demo endpoint showing system status"""
     try:
         # Test AgentCore availability
-        result = subprocess.run(['agentcore', '--version'], capture_output=True, text=True, timeout=5)
+        result = subprocess.run([AGENTCORE_PATH, '--version'], capture_output=True, text=True, timeout=5)
         agentcore_available = result.returncode == 0
 
         return jsonify({
             "bridge_server": "running",
             "agentcore_available": agentcore_available,
-            "agentcore_version": result.stdout.strip() if agentcore_available else "unavailable"
+            "agentcore_version": result.stdout.strip() if agentcore_available else "unavailable",
+            "agentcore_path": AGENTCORE_PATH
         })
 
     except Exception as e:
         return jsonify({
             "bridge_server": "running",
             "agentcore_available": False,
+            "agentcore_path": AGENTCORE_PATH,
             "error": str(e)
         })
 
 if __name__ == '__main__':
     print("🧶 Ariadne Clew Bridge Server Starting...")
     print("📡 Frontend API: http://localhost:5000")
+    print(f"🔗 AgentCore path: {AGENTCORE_PATH}")
     print("🔗 Connecting to AgentCore backend...")
 
     app.run(
