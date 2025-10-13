@@ -114,12 +114,22 @@ class AriadneClew:
         Handles different possible return formats from the agent
         """
         try:
-            # Case 1: Result has a message attribute (string)
-            if hasattr(result, 'message'):
+            # Case 1: Strands Agent format with content array (MOST COMMON)
+            # Returns: {"role": "assistant", "content": [{"text": "```json\n{...}\n```"}], "session_id": "..."}
+            if isinstance(result, dict) and "content" in result:
+                content = result.get("content", [])
+                if isinstance(content, list) and len(content) > 0:
+                    text = content[0].get("text", "")
+                    if text:
+                        logger.info("✓ Extracting from Strands Agent content array format")
+                        return self._parse_agent_response(text)
+
+            # Case 2: Result has a message attribute (string)
+            elif hasattr(result, 'message'):
                 response_text = result.message
                 return self._parse_agent_response(response_text)
 
-            # Case 2: Result is already a dict with the data we need
+            # Case 3: Result is already a dict with the data we need
             elif isinstance(result, dict):
                 # If it looks like our expected structure, use it directly
                 if "aha_moments" in result or "code_snippets" in result:
@@ -133,11 +143,11 @@ class AriadneClew:
                 else:
                     return self._parse_agent_response(str(result))
 
-            # Case 3: Result is a string response
+            # Case 4: Result is a string response
             elif isinstance(result, str):
                 return self._parse_agent_response(result)
 
-            # Case 4: Unknown format - convert to string and try to parse
+            # Case 5: Unknown format - convert to string and try to parse
             else:
                 logger.warning(f"Unknown result format: {type(result)}, converting to string")
                 return self._parse_agent_response(str(result))
