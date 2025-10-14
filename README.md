@@ -399,6 +399,116 @@ Recap stored in `.cache/` directory for:
 
 ---
 
+## 📏 Session Size Guidelines
+
+**Optimal Range:** 2,000 - 50,000 characters (~500 words - 35K words)
+**Maximum Limit:** 200,000 characters (Bedrock API constraint)
+
+### Why These Limits?
+
+**Focused sessions produce better insights:**
+- 2K-10K chars: Quick debugging sessions, single problems (~30 min - 1 hour)
+- 10K-50K chars: Deep work sessions, complex features (~1-3 hours)
+- 50K+ chars: May be slow to process, often less focused
+- 200K+ chars: Exceeds API limits, requires chunking
+
+**Technical constraints:**
+- Bedrock Claude API has ~200K token limit (~150K words)
+- Processing time scales with input size (60s timeout)
+- Analysis quality decreases with unfocused marathon chats
+- Focused sessions = clearer reasoning extraction
+
+### Best Practices
+
+**✅ Do:**
+- Analyze sessions incrementally as you work
+- Break at natural boundaries (topic shifts, task completions)
+- Focus on specific problems or decisions
+- Use multiple targeted analyses vs one massive session
+
+**❌ Avoid:**
+- Submitting entire days of conversation at once
+- Mixing unrelated topics in one session
+- Marathon sessions without clear structure
+- Copy-pasting everything "just in case"
+
+### What Happens at Each Limit?
+
+**Under 50K chars (Recommended):**
+- Fast processing (3-5 seconds typical)
+- Clear, focused insights
+- Best experience
+
+**50K - 200K chars (Allowed but slower):**
+- May take longer to process
+- Warning logged but processing continues
+- Results may be less focused
+
+**Over 200K chars (Hard limit):**
+- Request rejected with helpful error
+- Suggestion to break into focused segments
+- Guidance on natural break points
+
+### Tips for Large Projects
+
+**Problem:** "My build session was 6 hours and 80K characters!"
+
+**Solutions:**
+1. **Break by topic:** Analyze authentication discussion separately from UI work
+2. **Break by time:** Submit hourly or bi-hourly chunks
+3. **Focus on decisions:** Extract just the design discussions and code reviews
+4. **Use sections:** Copy relevant portions instead of entire transcript
+
+**Remember:** Ariadne Clew works best as your *ongoing reasoning companion*, not an *end-of-project archaeologist*.
+
+### Post-MVP: Smart Chunking
+
+**Planned enhancement:** Automatic chunking with session memory
+- Break long sessions at conversation boundaries
+- Preserve context across chunks with Memory API
+- Progressive understanding across multiple analyses
+- Merge insights intelligently
+
+**Why not MVP?** Chunking without memory = contradictory recaps. Doing it right requires AgentCore Memory API integration (post-MVP feature).
+
+### Examples
+
+**✅ Good session size (15K chars):**
+```
+User: I need to build authentication for my app
+[... detailed discussion of OAuth vs JWT ...]
+[... code iterations and testing ...]
+[... final implementation decided ...]
+
+Result: Clear "why JWT" tradeoff, final code snippet, security notes
+```
+
+**❌ Too large (150K chars):**
+```
+User: Let's build everything
+[... auth system ...]
+[... database design ...]
+[... frontend components ...]
+[... deployment strategy ...]
+[... 6 hours later ...]
+
+Result: Overwhelming, unfocused, hard to extract clear decisions
+```
+
+**Better approach:** Submit 4 separate focused sessions:
+1. Auth system decisions (20K)
+2. Database design (15K)
+3. Frontend components (30K)
+4. Deployment strategy (10K)
+
+Each gets a clear, actionable recap.
+
+---
+
+**Bottom line:** Think of Ariadne Clew like a focused work session partner, not a documentary filmmaker of your entire project history.
+
+---
+
 ## 📗 What It Enables
 
 Ariadne Clew acts as a **foundational memory primitive** for agent-native infrastructure.
@@ -632,7 +742,7 @@ Ariadne Clew exists to serve builders first. It obsesses over clarity and contin
 
 **Solo builder** | 3 weeks part-time | First AgentCore project
 
-**Approach:** Foundation-first. Real AWS integration over mocked features. 
+**Approach:** Foundation-first. Real AWS integration over mocked features.
 Production architecture over quick hacks. One autonomous agent done right.
 
 **What I prioritized:**
@@ -653,44 +763,44 @@ Production architecture over quick hacks. One autonomous agent done right.
 
 **La Shara Cordero** | Indie Builder | Learning in Public
 
-**Previous win:** 2nd place (out of 14 teams), Cal Poly DxHub AI Summer Camp 2024  
+**Previous win:** 2nd place (out of 14 teams), Cal Poly DxHub AI Summer Camp 2024
 *Team project:* [Customized AI Tutoring System](https://github.com/earlgreyhot1701D/team-110-customized-tutoring)
 
-**This project:** First solo agent build, first AWS hackathon  
+**This project:** First solo agent build, first AWS hackathon
 *Challenge:* Level up from team collaboration to solo execution while learning AWS ecosystem
 
 ---
 
 ## 🤝 Development Approach
 
-Built with AI pair programming (ChatGPT + Claude as my "6th person off the bench"). 
-All architectural decisions, scope choices, and final implementations reviewed 
-and owned by me. AI served as implementation assistant, documentation search, 
+Built with AI pair programming (ChatGPT + Claude as my "6th person off the bench").
+All architectural decisions, scope choices, and final implementations reviewed
+and owned by me. AI served as implementation assistant, documentation search,
 and thinking partner.
 
-**Modern solo development = Knowing when to build from scratch vs when to 
+**Modern solo development = Knowing when to build from scratch vs when to
 orchestrate and validate.**
 
 ---
 
 ## 🦆 About the Duck
 
-My team's 2nd place finish at [Cal Poly's AI Summer Camp](https://dxhub.calpoly.edu/ccc-ai-summer-camp/) 
+My team's 2nd place finish at [Cal Poly's AI Summer Camp](https://dxhub.calpoly.edu/ccc-ai-summer-camp/)
 (rubber duck themed) came with a rubber duck. That duck supervised this entire build.
 
-Rubber duck debugging: real.  
+Rubber duck debugging: real.
 Rubber duck good luck: apparently also real.
 
 ---
 
 ## 💭 The Meta
 
-This project about preserving reasoning from AI conversations was itself built 
-through extensive AI conversations with ChatGPT and Claude. The irony is not 
-lost on me—these are exactly the kinds of discussions Ariadne Clew was designed 
+This project about preserving reasoning from AI conversations was itself built
+through extensive AI conversations with ChatGPT and Claude. The irony is not
+lost on me—these are exactly the kinds of discussions Ariadne Clew was designed
 to preserve.
 
-*Should I have been running Ariadne Clew on itself while building it? Probably. 
+*Should I have been running Ariadne Clew on itself while building it? Probably.
 Did I? No. Do I see the problem? Yes. Will I fix it? That's post-MVP.*
 
 ---
@@ -699,7 +809,7 @@ Did I? No. Do I see the problem? Yes. Will I fix it? That's post-MVP.*
 
 **Better to ship one thing that works than promise three things half-built.**
 
-Foundation-first approach. Production-ready core over feature bloat. Honest 
+Foundation-first approach. Production-ready core over feature bloat. Honest
 scoping over over-promising. This is a **v1**, not a **v-final**.
 
 ---
@@ -719,8 +829,8 @@ scoping over over-promising. This is a **v1**, not a **v-final**.
 
 ## 📬 Connect
 
-**GitHub:** [github.com/earlgreyhot1701D](https://github.com/earlgreyhot1701D)  
-**Website:** [ThreadKeeper.io](https://threadkeeper.io)  
+**GitHub:** [github.com/earlgreyhot1701D](https://github.com/earlgreyhot1701D)
+**Website:** [ThreadKeeper.io](https://threadkeeper.io)
 **LinkedIn:** [La Shara Cordero](https://www.linkedin.com/in/la-shara-cordero-a0017a11/)
 **Email:** lsjcordero@gmail.com
 
@@ -728,9 +838,9 @@ Built with ☕, stubbornness, and a rubber duck from AI camp.
 
 ---
 
-*Built September 2025 for AWS Agent Hackathon*  
-*Repository created: September 14, 2025*  
-*Production-ready: October 2, 2025*  
+*Built September 2025 for AWS Agent Hackathon*
+*Repository created: September 14, 2025*
+*Production-ready: October 2, 2025*
 *3 weeks from concept to autonomous reasoning agent*
 
 ---
@@ -751,5 +861,5 @@ intellectual property.
 
 For inquiries, licensing, or commercial use, contact: lsjcordero@gmail.com
 
-**Note:** This repository was briefly public under MIT license on September 14–15, 2025.  
+**Note:** This repository was briefly public under MIT license on September 14–15, 2025.
 As of September 16, 2025, all commits are proprietary.
