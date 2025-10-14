@@ -90,14 +90,23 @@ def get_recap():
 
         # Prepare command
         agentcore_payload = {"prompt": chat_log}
+        payload_json = json.dumps(agentcore_payload)
+
+        # Check if payload might hit Windows command-line limits
+        # Windows CreateProcess has ~32K limit for entire command line
+        cmd_estimate = len(AGENTCORE_PATH) + len(payload_json) + len(session_id) + 100
+        if cmd_estimate > 30000:
+            logger.warning(f"⚠️ Command line length: {cmd_estimate} chars (Windows limit ~32K)")
+
         cmd = [
             AGENTCORE_PATH,
             'invoke',
-            json.dumps(agentcore_payload),
+            payload_json,
             '--session-id', session_id
         ]
 
         logger.info(f"Executing AgentCore command...")
+        logger.info(f"Payload size: {len(payload_json)} characters")
 
         # SIMPLE SOLUTION: Disable Rich formatting via environment variables
         env = os.environ.copy()
@@ -106,14 +115,24 @@ def get_recap():
         env['PYTHONIOENCODING'] = 'utf-8'  # Use UTF-8 encoding
 
         # Execute with clean environment and UTF-8 encoding
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            encoding='utf-8',      # Explicitly use UTF-8, not Windows cp1252
-            errors='replace',      # Replace bad chars instead of crashing
-            timeout=60,
-            env=env
-        )
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                encoding='utf-8',      # Explicitly use UTF-8, not Windows cp1252
+                errors='replace',      # Replace bad chars instead of crashing
+                timeout=60,
+                env=env
+            )
+        except OSError as e:
+            # Catch Windows command-line length errors
+            if e.winerror == 206 or 'filename' in str(e).lower():
+                return jsonify({
+                    "error": "session_too_large_for_windows",
+                    "human_readable": f"**Windows Command-Line Limit Exceeded**\n\nYour session ({len(chat_log):,} characters) is too large for Windows command-line processing.\n\n**Solution:** Break your conversation into smaller focused sessions (under 30K characters each) for better insights.",
+                    "status": "error"
+                }), 413
+            raise  # Re-raise if it's a different error
 
         logger.info(f"AgentCore return code: {result.returncode}")
 
