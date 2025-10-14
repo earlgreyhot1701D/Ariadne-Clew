@@ -59,6 +59,10 @@ def get_recap():
         logger.info(f"Processing recap for session: {session_id}")
         logger.info(f"Chat log length: {len(chat_log)} characters")
 
+        # Session size constraints
+        RECOMMENDED_MAX = 50000  # ~35K words, 1-2 hour focused session (optimal for 60s timeout)
+        ABSOLUTE_MAX = 200000    # Hard API limit (Bedrock token constraints)
+
         # Validate input
         if not chat_log.strip():
             return jsonify({
@@ -66,11 +70,23 @@ def get_recap():
                 "human_readable": "Please provide a chat transcript to analyze"
             }), 400
 
-        if len(chat_log) > 200000:
+        # Hard limit: Exceeds API constraints
+        if len(chat_log) > ABSOLUTE_MAX:
             return jsonify({
-                "error": "chat_log too large",
-                "human_readable": "Chat transcript exceeds maximum length"
-            }), 400
+                "error": "conversation_too_long",
+                "human_readable": f"**Session Too Large**\n\nYour conversation is {len(chat_log):,} characters. Ariadne Clew has a maximum limit of {ABSOLUTE_MAX:,} characters due to Bedrock API token constraints.\n\n**Recommendation:** Analyze specific portions of your conversation instead of the entire history. Break at natural boundaries (topic shifts, task completions) for better insights.\n\n**Tip:** Focused sessions (2K-50K chars) produce clearer, more actionable recaps.",
+                "status": "error",
+                "details": {
+                    "chars_provided": len(chat_log),
+                    "absolute_max": ABSOLUTE_MAX,
+                    "recommended_max": RECOMMENDED_MAX
+                }
+            }), 413
+
+        # Soft warning: May be slow but will attempt processing
+        if len(chat_log) > RECOMMENDED_MAX:
+            logger.warning(f"⚠️ Large input: {len(chat_log):,} chars (recommended: {RECOMMENDED_MAX:,}). Processing may take longer.")
+            # Allow processing to continue - log warning for user awareness
 
         # Prepare command
         agentcore_payload = {"prompt": chat_log}
