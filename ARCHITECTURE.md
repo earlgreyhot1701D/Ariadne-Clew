@@ -1,7 +1,7 @@
 # Ariadne Clew: Technical Architecture
 
-**Version:** 1.0 (MVP)  
-**Last Updated:** October 2, 2025  
+**Version:** 1.0 (MVP)
+**Last Updated:** October 2, 2025
 **Built for:** AWS Agent Hackathon
 
 ---
@@ -12,7 +12,7 @@ Ariadne Clew is an **autonomous reasoning agent** that transforms unstructured A
 
 ### Design Philosophy
 
-**Agent-First Architecture**: Built on AWS AgentCore 
+**Agent-First Architecture**: Built on AWS AgentCore
 - Real `BedrockAgentCoreApp` integration (not simulated)
 - Strands-based agent orchestration
 - Production-ready error handling and fallbacks
@@ -45,7 +45,7 @@ graph TB
     F --> G[AWS AgentCore Runtime]
     G --> H[BedrockAgentCoreApp]
     H --> I[Amazon Bedrock API]
-    I --> J[Claude Sonnet 3.5]
+    I --> J[Claude Sonnet 4]
     J --> K[Strands Agent Orchestration]
     K --> L[Reasoning Extraction]
     L --> M[JSON Schema Validation]
@@ -57,7 +57,7 @@ graph TB
     Q --> S[Structured JSON Data]
     R --> T[Frontend Display]
     S --> T
-    
+
     style G fill:#FF9900,stroke:#232F3E,stroke-width:3px
     style H fill:#FF9900,stroke:#232F3E,stroke-width:3px
     style I fill:#FF9900,stroke:#232F3E,stroke-width:3px
@@ -106,7 +106,7 @@ graph TB
 ┌─────────────────────────────────────────────────┐
 │       INFERENCE LAYER (Bedrock + Claude)        │
 │  • Amazon Bedrock API                           │
-│  • Claude Sonnet 3.5 model                      │
+│  • Claude Sonnet 4 model                      │
 │  • Engineered classification prompt             │
 │  • Structured JSON response generation          │
 └─────────────────────────────────────────────────┘
@@ -147,6 +147,174 @@ graph TB
 ```
 
 ---
+
+---
+
+## 🚀 Deployment Pipeline
+
+### Agent Containerization & Runtime Flow
+
+AriadneClew uses AWS CodeBuild and Amazon ECR to containerize the agent for Lambda execution. This happens automatically when you run `agentcore launch`.
+
+```
+[agent.py Source Code]
+         ↓
+[AWS CodeBuild: Containerization]
+    • Reads agent.py + dependencies
+    • Builds Docker container
+    • Installs Python requirements
+    • Packages Strands + AgentCore SDK
+         ↓
+[Amazon ECR: Container Registry]
+    • Stores container images
+    • Tags by deployment timestamp
+    • Manages image versions
+         ↓
+[AWS Lambda: Runtime Execution]
+    • Pulls container on cold start
+    • Executes agent entrypoint
+    • Streams logs to CloudWatch
+    • Integrates with X-Ray tracing
+```
+
+### Deployment Commands
+
+**Initial Setup:**
+```bash
+# Configure agent entrypoint
+agentcore configure --entrypoint backend/agent.py
+
+# Deploy to AWS (triggers CodeBuild → ECR → Lambda)
+agentcore launch --auto-update-on-conflict
+```
+
+**What Happens:**
+1. **AgentCore CLI** reads your configuration
+2. **CodeBuild** is triggered to containerize agent.py
+3. **Docker image** is built with all dependencies:
+   - Python 3.12 runtime
+   - bedrock-agentcore package
+   - strands-agents SDK
+   - Your agent.py code
+4. **ECR** stores the container image
+5. **Lambda** is configured to use the ECR image
+6. **First invocation** pulls container (cold start)
+7. **Subsequent calls** reuse warm container
+
+### Container Caching Issue (Critical Learning)
+
+**The Problem:**
+AgentCore aggressively caches containers. Updated code wouldn't deploy despite multiple rebuild attempts.
+
+**The Solution:**
+```bash
+# Nuclear reset approach
+rm .bedrock_agentcore.yaml
+agentcore configure --entrypoint backend/agent.py
+agentcore launch --auto-update-on-conflict
+```
+
+**Why `--auto-update-on-conflict` matters:**
+- Forces cache invalidation
+- Rebuilds container from scratch
+- Updates Lambda configuration
+- Essential for reliable deployments
+
+### CloudWatch Integration
+
+**Log Groups:**
+- **Build logs:** `/aws/codebuild/agentcore-*`
+- **Runtime logs:** `/aws/lambda/agentcore-*`
+
+**Key Log Patterns:**
+```
+🚀 STARTING TRANSCRIPT PROCESSING
+📝 Building reasoning prompt...
+🤖 Calling Strands agent...
+✓ Strands agent returned
+🔧 Extracting analysis from result...
+✅ TRANSCRIPT PROCESSING COMPLETE
+```
+
+### X-Ray Tracing
+
+**Enabled automatically** for:
+- Lambda invocations
+- Bedrock API calls
+- Request latency tracking
+- Error rate monitoring
+
+**Access tracing:**
+```
+AWS Console → X-Ray → Service Map
+```
+
+### Supporting Services
+
+```
+[CloudWatch Logs] ← Connected to Lambda (debugging)
+[AWS X-Ray] ← Connected to Lambda (tracing)
+[ECR Repository] ← Stores container images (versioning)
+[CodeBuild Project] ← Builds containers (CI/CD)
+```
+
+### Cost Breakdown (Deployment)
+
+| Service | Cost | Notes |
+|---------|------|-------|
+| CodeBuild | $0.005 per build minute | ~2 min per deployment |
+| ECR Storage | $0.10 per GB/month | ~500MB per image |
+| Lambda (idle) | $0.00 | Pay per invocation only |
+| CloudWatch Logs | $0.50 per GB | Negligible for MVP |
+
+**Deployment cost:** ~$0.01 per deployment
+**Storage cost:** ~$0.05/month for image hosting
+
+### Invocation Flow (Post-Deployment)
+
+```
+[Bridge Server]
+    ↓
+    subprocess.run(["agentcore", "invoke", ...])
+    ↓
+[AgentCore CLI]
+    ↓
+    Invokes Lambda via AWS SDK
+    ↓
+[Lambda (Cold Start)]
+    ↓
+    Pulls container from ECR (if needed)
+    ↓
+[Lambda Execution]
+    ↓
+    Runs agent.py entrypoint
+    ↓
+[Bedrock API Call]
+    ↓
+    Claude Sonnet 4 inference
+    ↓
+[Response Path]
+    ↓
+    Lambda → AgentCore CLI → Bridge → Frontend
+```
+
+**Cold start penalty:** 2-3 seconds (first invocation)
+**Warm execution:** <500ms overhead (subsequent calls)
+
+### Production Considerations
+
+**For hackathon/demo:**
+- Local bridge server invoking AgentCore CLI works perfectly
+- No API Gateway or serverless infrastructure needed
+- Full CloudWatch visibility for debugging
+
+**For production scale:**
+- Replace bridge server with API Gateway + Lambda
+- Direct Lambda invocation (no subprocess)
+- CloudFront for frontend CDN
+- DynamoDB for session persistence
+
+**Current architecture proves the agent works.** Production deployment is straightforward infrastructure scaling, not code changes.
 
 ## 🔧 Core Components Deep Dive
 
@@ -227,9 +395,9 @@ def scrub_pii(text: str) -> str:
 def contains_deny_terms(text: str) -> bool:
     """Check for dangerous terms"""
     deny_list = [
-        "rm -rf /", 
+        "rm -rf /",
         "BEGIN RSA PRIVATE KEY",
-        "password", 
+        "password",
         "api_key",
         "secret_key"
     ]
@@ -263,26 +431,26 @@ agent = Agent()
 
 class AriadneClew:
     """AWS AgentCore-powered autonomous reasoning agent"""
-    
+
     def __init__(self, session_id: str = "default"):
         self.session_id = session_id
         self.app = app
         self.agent = agent
-    
+
     def _process_transcript_sync(self, chat_log: str) -> Dict[str, Any]:
         """Main processing pipeline - operates autonomously"""
         # 1. Build reasoning extraction prompt
         reasoning_prompt = self._build_reasoning_prompt(chat_log)
-        
+
         # 2. Invoke Strands agent (calls Bedrock)
         result = self.agent(reasoning_prompt)
-        
+
         # 3. Handle multiple response formats
         analysis = self._extract_analysis_from_result(result)
-        
+
         # 4. Format for demo output
         recap = self._format_for_demo(analysis)
-        
+
         return recap
 
 @app.entrypoint
@@ -290,10 +458,10 @@ def invoke(payload):
     """AgentCore entrypoint - called by CLI"""
     chat_log = payload.get("chat_log") or payload.get("prompt")
     session_id = payload.get("session_id", "agentcore-session")
-    
+
     ariadne = AriadneClew(session_id=session_id)
     result = ariadne._process_transcript_sync(chat_log)
-    
+
     return {"status": "success", "result": result}
 ```
 
@@ -382,7 +550,7 @@ class Recap(BaseModel):
     readme_notes: List[str] = Field(default_factory=list)
     post_mvp_ideas: List[str] = Field(default_factory=list)
     quality_flags: List[str] = Field(default_factory=list)
-    
+
     class Config:
         extra = "forbid"  # Reject any fields not in schema
 ```
@@ -413,19 +581,19 @@ class Recap(BaseModel):
 ```python
 def format_recap(recap: Recap) -> Dict[str, Any]:
     """Generate both human and machine outputs"""
-    
+
     # Human-readable markdown summary
     human_readable = []
     human_readable.append(f"## Session Recap: {recap.session_id}\n")
     human_readable.append(f"**Summary:** {recap.summary}\n")
-    
+
     if recap.aha_moments:
         human_readable.append("### 💡 Key Insights")
         for moment in recap.aha_moments:
             human_readable.append(f"- {moment}")
-    
+
     # ... more sections
-    
+
     # Structured JSON for APIs/tools
     structured_data = {
         "session_id": recap.session_id,
@@ -433,7 +601,7 @@ def format_recap(recap: Recap) -> Dict[str, Any]:
         "code_snippets": [s.dict() for s in recap.code_snippets],
         # ... all fields
     }
-    
+
     return {
         "human_readable": "\n".join(human_readable),
         "structured_data": structured_data
@@ -514,7 +682,7 @@ def validate_snippet_advanced(code: str, language: str):
         language=language,
         capture_output=True
     )
-    
+
     return {
         "status": result.status,  # valid/partial/invalid
         "execution_time": result.time_ms,
@@ -760,10 +928,10 @@ recap = Recap.model_validate(analysis)
 return {
     "human_readable": """
     ## Session Recap: demo-123
-    
+
     ### 💡 Key Insights
     - User pivoted from JWT to sessions
-    
+
     ### 🧩 Design Decisions
     - Sessions simpler for MVP, JWT for scale
     """,
@@ -841,7 +1009,7 @@ AriadneClew demonstrates true **agentic behavior** as defined by the AWS Agent H
 | Service | Status | Purpose | Implementation |
 |---------|--------|---------|----------------|
 | **AgentCore Runtime** | ✅ Production | Secure agent execution | BedrockAgentCoreApp + Strands |
-| **Amazon Bedrock** | ✅ Production | LLM reasoning | Claude Sonnet 3.5 |
+| **Amazon Bedrock** | ✅ Production | LLM reasoning | Claude Sonnet 4 |
 | **Strands Orchestration** | ✅ Production | Agent framework | Error handling, retries |
 | **Code Interpreter** | 🔮 Planned Post-MVP | Sandbox execution | AST validation (MVP) |
 | **Memory API** | 🔮 Planned Post-MVP | Cross-session context | Local files (MVP) |
@@ -864,7 +1032,7 @@ agent = Agent()
 - Enables production-ready deployment
 
 **Bedrock Models (✅ Production):**
-- Claude Sonnet 3.5 for reasoning and extraction
+- Claude Sonnet 4 for reasoning and extraction
 - Structured prompts with anti-hallucination guardrails
 - Real-time inference via Bedrock API
 
@@ -1020,14 +1188,14 @@ Resources:
     Properties:
       WebsiteConfiguration:
         IndexDocument: index.html
-  
+
   RecapAPI:
     Type: AWS::Serverless::Api
     Properties:
       StageName: prod
       Cors:
         AllowOrigin: "'*'"
-  
+
   RecapFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -1080,7 +1248,7 @@ aws bedrock list-foundation-models --region us-east-1
 
 **What This Proves:**
 - Not a simulation or mock - real AWS AgentCore Runtime
-- Actual Bedrock API calls with Claude Sonnet 3.5
+- Actual Bedrock API calls with Claude Sonnet 4
 - Production-ready agent orchestration via Strands
 - Follows AWS best practices for agent architecture
 
@@ -1095,7 +1263,7 @@ aws bedrock list-foundation-models --region us-east-1
 # Test autonomous extraction:
 echo '{"prompt":"User: I decided to use sessions\nAssistant: Good choice"}' | \
   agentcore invoke --session-id demo
-  
+
 # Returns structured JSON with:
 # - aha_moments: ["User decided on session-based auth"]
 # - mvp_changes: ["Authentication strategy finalized"]
@@ -1131,7 +1299,7 @@ result = agent.process_transcript("invalid input")
 - Session management and isolation
 
 **Bedrock/Claude Integration (✅ 100% Real):**
-- Reasoning extraction via Claude Sonnet 3.5
+- Reasoning extraction via Claude Sonnet 4
 - Structured prompts in `prompts/classifier_prompt.md`
 - Schema validation prevents hallucinations
 - Real API calls (not mocked)
@@ -1157,7 +1325,7 @@ Rather than surface-level integration of all AgentCore services, AriadneClew dem
 
 **Production Thinking:**
 - Tests for reliability
-- Schema enforcement for consistency  
+- Schema enforcement for consistency
 - Error handling for resilience
 - Documentation for maintainability
 - **Autonomous operation without human oversight**
@@ -1188,7 +1356,7 @@ Rather than surface-level integration of all AgentCore services, AriadneClew dem
 
 ### Cost Optimization
 
-- **Bedrock:** ~$0.003 per 1000-line transcript (Claude Sonnet 3.5)
+- **Bedrock:** ~$0.003 per 1000-line transcript (Claude Sonnet 4)
 - **Lambda:** Pay-per-invoke, zero idle cost
 - **DynamoDB:** Free tier covers 1000s of reads/writes
 - **Estimated cost:** <$5/month for 1000 recaps
@@ -1377,7 +1545,7 @@ Built for AWS Agent Hackathon (September 2025) by La Shara Cordero
 
 **Key Technologies:**
 - AWS AgentCore (BedrockAgentCoreApp, Strands)
-- Amazon Bedrock (Claude Sonnet 3.5)
+- Amazon Bedrock (Claude Sonnet 4)
 - Flask (Bridge Server)
 - Pydantic (Schema Validation)
 
@@ -1393,7 +1561,7 @@ Started exploring AI-assisted development in July 2025 with first Bedrock API ca
 
 ---
 
-**Last Updated:** October 2, 2025  
-**Version:** 1.0 (MVP)  
-**Status:** Production-ready for hackathon demo  
+**Last Updated:** October 2, 2025
+**Version:** 1.0 (MVP)
+**Status:** Production-ready for hackathon demo
 **Agentic Qualification:** ✅ Autonomous reasoning, complex task execution, limited human oversight

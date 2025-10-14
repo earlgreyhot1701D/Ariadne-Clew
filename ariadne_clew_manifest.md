@@ -16,7 +16,7 @@ Born from the myth of the thread through the maze, she captures builder intent, 
 ### MVP (Production-Ready)
 - **Python 3.11+**: Modern language features, type hints
 - **AWS AgentCore Runtime**: BedrockAgentCoreApp + Strands for agent orchestration
-- **Amazon Bedrock**: Claude Sonnet 3.5 for reasoning extraction
+- **Amazon Bedrock**: Claude Sonnet 4 for reasoning extraction
 - **Flask**: Bridge server connecting frontend to AgentCore CLI
 - **Pydantic**: Schema validation with `extra="forbid"` for strict output
 - **pytest**: Comprehensive test coverage (56 tests)

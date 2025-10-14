@@ -218,59 +218,83 @@ That's the difference between a chat log and a decision artifact.
 
 ---
 
+## Demo video
+
+<a href="https://youtube.com/shorts/KGTjecfwA0E?feature=share" target="_blank">
+  <img src="https://img.youtube.com/vi/KGTjecfwA0E/hqdefault.jpg" alt="Ariadne Clew demo short" width="640">
+</a>
+
+**What you will see:** a quick pass through the MVP flow that shows the container build, ECR image handoff, and the recap endpoint driving AgentCore on Bedrock. The short highlights the happy path and the UI moments reviewers care about first.
+
+**Direct link:** https://youtube.com/shorts/KGTjecfwA0E?feature=share
+
+---
+
 ## 🗺️ Technical Architecture: AWS-Native Agent Stack
 
-### MVP Architecture (Production-Ready)
+### Complete Data Flow
 
 ```
 [User: Chat Transcript]
          ↓
 [Frontend: Pastebox UI]
          ↓
-[Bridge Server: Flask]
+[Bridge Server: Flask API]
          ↓
 [Input Filters: PII Scrub, Deny-list, Size Check]
          ↓
-[AgentCore Runtime: BedrockAgentCoreApp]
+[AgentCore Runtime: BedrockAgentCoreApp on Lambda]
          ↓
-[Bedrock API: Claude Sonnet 3.5]
+[Agent: Strands Agent (agent.py)]
          ↓
-[Agent: Autonomous Reasoning Extraction]
+[Bedrock API: Claude Sonnet 4]
+         ↓
+[Response Processing: JSON Extraction + Validation]
          ↓
 [Schema Validation: Pydantic (extra="forbid")]
          ↓
-[Dual Output: Human-Readable + Structured JSON]
+[Dual Output: Human-Readable HTML + Structured JSON]
          ↓
-[Local Storage: File-based Session Cache]
+[Bridge Server: Format Response]
          ↓
 [Frontend Display: Split Panel View]
 ```
 
-### Production Architecture (Post-MVP)
+### Deployment Pipeline (One-Time Setup)
 
 ```
-[S3 Upload Trigger]
+[agent.py source code]
          ↓
-[Lambda: Input Validation]
+[AWS CodeBuild: Containerization]
          ↓
-[AgentCore Runtime: Serverless]
+[Amazon ECR: Container Registry]
          ↓
-[Bedrock + Code Interpreter]
-         ↓
-[AgentCore Memory API: Semantic Context]
-         ↓
-[DynamoDB: Persistent Storage]
-         ↓
-[API Gateway: RESTful Access]
-         ↓
-[CloudWatch: Logging & Monitoring]
+[AWS Lambda: Pulls container on cold start]
 ```
+
+### Supporting Services
+
+```
+[CloudWatch Logs] ← Connected to Lambda
+[AWS X-Ray] ← Connected to Lambda
+[Local Session Cache] ← Optional file-based storage
+```
+
+### Key AWS Services Used
+
+1. **Amazon Bedrock** - Claude Sonnet 4 (LLM)
+2. **AWS AgentCore Runtime** - BedrockAgentCoreApp
+3. **AWS Lambda** - Container execution
+4. **AWS CodeBuild** - Containerization pipeline
+5. **Amazon ECR** - Container image storage
+6. **Amazon CloudWatch** - Logging and monitoring
+7. **AWS X-Ray** - Distributed tracing
 
 ### Core Components:
 
 **MVP (Built & Working):**
 - **AgentCore Runtime**: BedrockAgentCoreApp + Strands for agent orchestration
-- **Bedrock Claude Sonnet 3.5**: Autonomous reasoning extraction
+- **Bedrock Claude Sonnet 4**: Autonomous reasoning extraction
 - **Flask Bridge Server**: Connects frontend to AgentCore CLI
 - **AST Code Validation**: Syntax checking without execution
 - **Local File Storage**: Session-based caching
@@ -284,33 +308,11 @@ That's the difference between a chat log and a decision artifact.
 - **DynamoDB**: Distributed session storage
 
 *Built for production from day one. No shortcuts, no technical debt.*
-
----
-
-## 🧪 Responsible AI Safeguards
-
-Because moving fast shouldn't mean moving recklessly:
-
-### **Input Filtering**
-- Character limits prevent token overflow (50K max)
-- PII scrubbing (emails, phones, SSNs) before Bedrock calls
-- Deny-list filtering for harmful content
-- Schema validation on all uploads
-
-### **Output Validation**
-- Bedrock Guardrails for harmful content detection
-- Strict JSON schema enforcement - no hallucinated prose
-- `extra="forbid"` prevents unexpected fields
-- Empty arrays over speculation
-
-### **Code Safety**
-- No code execution in MVP (AST syntax checking only)
-- Sandbox isolation planned for Code Interpreter integration
 - Resource limits for production deployment
 
 ### **Model Selection Process**
 Evaluated Claude, Titan, and Nova on transcript classification:
-- **Claude Sonnet 3.5**: Best reasoning extraction, consistent JSON output
+- **Claude Sonnet 4**: Best reasoning extraction, consistent JSON output
 - **Cost optimization**: Predictable token usage, hackathon-safe (~$0.003 per recap)
 - **Reliability**: Handles edge cases without hallucination
 
@@ -334,7 +336,7 @@ The agent operates completely autonomously:
 
 1. **Input Validation**: Filters scrub PII, check deny-list, enforce size limits
 2. **AgentCore Invocation**: Bridge server calls `agentcore invoke`
-3. **Bedrock Reasoning**: Claude Sonnet 3.5 extracts structured insights
+3. **Bedrock Reasoning**: Claude Sonnet 4 extracts structured insights
 4. **Classification**: Agent identifies code vs reasoning, tags intent
 5. **Validation**: AST parsing checks code syntax
 6. **Reconciliation**: Agent resolves conflicts between versions

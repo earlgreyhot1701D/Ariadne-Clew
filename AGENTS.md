@@ -8,7 +8,7 @@ This file provides persistent context and conventions for AI agents that work in
 - **Project**: Ariadne Clew (AC)
 - **Mission**: Preserve reasoning from messy chat-driven developer workflows through autonomous agent operation.
 - **Tagline**: "Don't commit without context."
-- **Hackathon Context**: Production runs and demos use **AWS AgentCore Runtime with Amazon Bedrock** (Claude Sonnet 3.5) for autonomous reasoning extraction. MVP demonstrates agentic behavior through Runtime + Bedrock integration. Code Interpreter and Memory API are architected for post-MVP enhancement.
+- **Hackathon Context**: Production runs and demos use **AWS AgentCore Runtime with Amazon Bedrock** (Claude Sonnet 4) for autonomous reasoning extraction. MVP demonstrates agentic behavior through Runtime + Bedrock integration. Code Interpreter and Memory API are architected for post-MVP enhancement.
 
 ---
 
@@ -228,4 +228,4 @@ When working on this codebase:
 ---
 
 *This file is the source of truth for technical implementation details and conventions.*
-*Last Updated: October 2, 2025*
+*Last Updated: October 14, 2025*

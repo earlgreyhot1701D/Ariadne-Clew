@@ -30,7 +30,7 @@ and dual output panels (human-readable + raw JSON).
 
 **AWS Integration (MVP)**
 - **AgentCore Runtime**: BedrockAgentCoreApp + Strands agents for orchestration
-- **Bedrock Model**: Claude Sonnet 3.5 for reasoning extraction
+- **Bedrock Model**: Claude Sonnet 4 for reasoning extraction
 - **Code Validation**: AST syntax parsing (Python-specific)
 - **Session Storage**: Local file-based caching (`.cache/` directory)
 - **Safety**: Input filters (PII scrub, deny-list, size limits)
