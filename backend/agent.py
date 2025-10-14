@@ -4,286 +4,310 @@ Uses the real AWS AgentCore Runtime API with BedrockAgentCoreApp.
 
 Built for AWS Agent Hackathon - demonstrates AgentCore integration
 with reasoning extraction and structured recap generation.
+
+Ariadne Clew: Bedrock AgentCore agent (HTML human_readable)
+
+This variant returns `human_readable` as minimal HTML (<h2>, <ul><li>) so it looks
+like a proper list in UIs that collapse newlines and ignore Markdown.
+
+Everything else stays the same: robust Strands parsing + schema-safe normalization.
 """
 
 from __future__ import annotations
 
+import html
 import json
 import logging
-from typing import Any, Dict, Optional
+import re
+import sys
+from typing import Any, Dict, List, Optional
 
 # Real AWS AgentCore imports
-from bedrock_agentcore import BedrockAgentCoreApp
-from strands import Agent
+from bedrock_agentcore import BedrockAgentCoreApp  # must exist in your env
+from strands import Agent  # must exist in your env
 
-# Keep your existing logic
-from backend.schema import Recap
-from backend.recap_formatter import format_recap
+# Schema + formatter (optional, but expected)
+try:
+    from backend.schema import Recap  # Pydantic model
+except Exception:
+    Recap = None  # tolerate absence
 
+try:
+    from backend.recap_formatter import format_recap
+except Exception:
+    def format_recap(model):  # graceful fallback
+        try:
+            return model.model_dump()  # type: ignore[attr-defined]
+        except Exception:
+            return {}
+
+# Configure logging to stdout for CloudWatch
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout,
+    force=True
+)
 logger = logging.getLogger(__name__)
 
 # Initialize AWS AgentCore app and agent
 app = BedrockAgentCoreApp()
 agent = Agent()
 
+def debug_print(msg: str):
+    """Print with flush for immediate CloudWatch visibility"""
+    print(msg, flush=True)
+
+# -----------------------------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------------------------
+
+_JSON_FENCE = re.compile(r"```json\s*(.+?)\s*```", re.DOTALL | re.IGNORECASE)
+
+def _extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
+    """Extract dict from either a ```json fenced block or raw JSON string."""
+    if not isinstance(text, str):
+        return None
+    m = _JSON_FENCE.search(text)
+    raw = m.group(1) if m else text
+    raw = raw.strip()
+    try:
+        return json.loads(raw)
+    except Exception:
+        return None
+
+def _looks_like_agent_wrapper(d: Dict[str, Any]) -> bool:
+    """Detect a Strands-style wrapper: {'role':'assistant','content':[{'text': '...'}]}"""
+    if not isinstance(d, dict):
+        return False
+    if "role" in d and "content" in d and isinstance(d["content"], list):
+        if d["content"] and isinstance(d["content"][0], dict) and "text" in d["content"][0]:
+            return True
+    return False
+
+def _parse_agent_result(result: Any) -> Dict[str, Any]:
+    """
+    Convert Strands result into the analysis dict with keys like aha_moments, code_snippets, etc.
+    Order:
+      1) result.content[0].text
+      2) result.message (wrapper or raw/fenced JSON)
+      3) dict wrapper
+      4) already-dict
+      5) {}
+    """
+    # 1) content[0].text
+    try:
+        content = getattr(result, "content", None)
+        if isinstance(content, list) and content and isinstance(content[0], dict):
+            text = content[0].get("text")
+            parsed = _extract_json_from_text(text or "")
+            if isinstance(parsed, dict) and parsed:
+                return parsed
+    except Exception:
+        pass
+
+    # 2) message
+    try:
+        message = getattr(result, "message", None)
+        if isinstance(message, dict) and _looks_like_agent_wrapper(message):
+            try:
+                text = message["content"][0].get("text", "")
+                parsed = _extract_json_from_text(text)
+                if isinstance(parsed, dict) and parsed:
+                    return parsed
+            except Exception:
+                pass
+        parsed = _extract_json_from_text(message or "")
+        if isinstance(parsed, dict) and parsed:
+            return parsed
+    except Exception:
+        pass
+
+    # 3) dict wrapper or already-dict
+    if isinstance(result, dict):
+        if _looks_like_agent_wrapper(result):
+            try:
+                text = result["content"][0].get("text", "")
+                parsed = _extract_json_from_text(text)
+                if isinstance(parsed, dict) and parsed:
+                    return parsed
+            except Exception:
+                pass
+        return result
+
+    # Fallback
+    return {}
+
+def _normalize_for_schema(analysis: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Build a payload compatible with Recap.model_validate:
+      - final: SINGLE snippet object
+      - don't include unknown fields (e.g., scope_creep) here
+    """
+    snips = analysis.get("code_snippets") or []
+    if isinstance(snips, list) and snips:
+        s = snips[0] if isinstance(snips[0], dict) else {}
+        final_snip = {
+            "language": s.get("language", "text"),
+            "content": s.get("content", ""),
+            "user_marked_final": bool(s.get("user_marked_final", False)),
+            "context": s.get("context", ""),
+        }
+    else:
+        final_snip = {"language": "text", "content": "", "user_marked_final": False, "context": ""}
+
+    return {
+        "session_id": analysis.get("session_id"),
+        "summary": analysis.get("summary", ""),
+        "final": final_snip,
+        "rejected_versions": analysis.get("rejected_versions", []),
+        "aha_moments": analysis.get("aha_moments", []),
+    }
+
+def _to_html_list(items: List[str]) -> str:
+    if not items:
+        return ""
+    safe = "".join(f"<li>{html.escape(str(i))}</li>" for i in items)
+    return f"<ul>{safe}</ul>"
+
+def _generate_human_summary_html(analysis: Dict[str, Any]) -> str:
+    """
+    Compose an HTML summary with clear sections and bullets.
+    Works even if the consumer collapses newlines or ignores Markdown.
+    """
+    session_id = html.escape(analysis.get("session_id", "unknown-session"))
+    aha = analysis.get("aha_moments") or []
+    mvp = analysis.get("mvp_changes") or []
+    tradeoffs = analysis.get("design_tradeoffs") or []
+    post = analysis.get("post_mvp_ideas") or []
+    snips = analysis.get("code_snippets") or []
+    summary = html.escape(analysis.get("summary") or "")
+
+    parts: List[str] = []
+    parts.append(f"<h2>Session: {session_id}</h2>")
+
+    if summary:
+        parts.append("<h3>Summary</h3>")
+        parts.append(f"<p>{summary}</p>")
+
+    if aha:
+        parts.append("<h3>Key Insights</h3>")
+        parts.append(_to_html_list([str(a) for a in aha]))
+
+    if mvp:
+        parts.append("<h3>MVP Changes</h3>")
+        parts.append(_to_html_list([str(c) for c in mvp]))
+
+    if tradeoffs:
+        parts.append("<h3>Design Tradeoffs</h3>")
+        parts.append(_to_html_list([str(t) for t in tradeoffs]))
+
+    if snips:
+        parts.append("<h3>Code Discovered</h3>")
+        labels = []
+        for s in snips[:3]:
+            lang = (s or {}).get("language", "text")
+            ctx = (s or {}).get("context", "")
+            label = f"[{lang}] {ctx}".strip() or f"[{lang}] snippet"
+            labels.append(label)
+        parts.append(_to_html_list(labels))
+
+    if post:
+        parts.append("<h3>Post-MVP Ideas</h3>")
+        parts.append(_to_html_list([str(p) for p in post]))
+
+    html_text = "".join(parts).strip()
+    return html_text or "<p>No structured insights were returned by the agent.</p>"
+
+# -----------------------------------------------------------------------------
+# Core class
+# -----------------------------------------------------------------------------
 
 class AriadneClew:
     """
     AWS AgentCore-powered reasoning agent using the real BedrockAgentCoreApp.
-
-    Transforms chaotic chat transcripts into structured reasoning artifacts
-    using AWS AgentCore Runtime and Strands agents.
     """
 
     def __init__(self, session_id: str = "default"):
         self.session_id = session_id
         self.app = app
         self.agent = agent
+        debug_print(f"🎯 AriadneClew initialized for session: {session_id}")
 
-    async def process_transcript(self, chat_log: str) -> Dict[str, Any]:
+    def process_transcript_sync(self, chat_log: str) -> Dict[str, Any]:
         """
-        Process chat transcript using AWS AgentCore (async version)
-
-        This uses the real AgentCore runtime to:
-        1. Extract reasoning from transcript
-        2. Structure the response
-        3. Return human-readable recap
+        Build prompt → call Strands → parse → human_readable (HTML) + structured
         """
+        debug_print("="*80)
+        debug_print("🚀 STARTING TRANSCRIPT PROCESSING")
+        debug_print(f"Session ID: {self.session_id}")
+        debug_print(f"Chat log length: {len(chat_log)} chars")
+        debug_print("="*80)
 
         if not chat_log or not isinstance(chat_log, str):
             raise ValueError("Invalid chat_log: must be non-empty string")
 
-        logger.info(f"AriadneClew processing transcript for session {self.session_id}")
+        # 1) Build prompt
+        debug_print("📝 Building reasoning prompt...")
+        prompt = self._build_reasoning_prompt(chat_log)
+        debug_print(f"✓ Prompt built: {len(prompt)} chars")
 
-        try:
-            # Use the real AgentCore agent for reasoning extraction
-            reasoning_prompt = self._build_reasoning_prompt(chat_log)
+        # 2) Call Strands
+        debug_print("🤖 Calling Strands agent...")
+        result = self.agent(prompt)
+        debug_print("✓ Strands agent returned")
 
-            # This calls the actual AgentCore/Bedrock integration
-            result = self.agent(reasoning_prompt)
+        # 3) Parse
+        debug_print("🔧 Extracting analysis from result...")
+        analysis = _parse_agent_result(result)
+        if not analysis:
+            debug_print("⚠️  No analysis extracted; defaulting to empty dict.")
+            analysis = {}
+        analysis["session_id"] = self.session_id
+        debug_print("✓ Analysis extracted")
 
-            # Handle different response formats from strands.Agent
-            analysis = self._extract_analysis_from_result(result)
-            analysis["session_id"] = self.session_id
+        # 4) Format
+        debug_print("🎨 Formatting for output...")
+        recap = self._format_for_demo(analysis)
+        debug_print("✓ Formatting complete")
 
-            # Format for demo
-            recap = self._format_for_demo(analysis)
+        debug_print("="*80)
+        debug_print("✅ TRANSCRIPT PROCESSING COMPLETE")
+        debug_print("="*80)
 
-            logger.info(f"AriadneClew completed processing for session {self.session_id}")
-            return recap
-
-        except Exception as e:
-            logger.error(f"AriadneClew processing failed: {e}")
-            raise RuntimeError(f"Reasoning extraction failed: {str(e)}")
-
-    def _process_transcript_sync(self, chat_log: str) -> Dict[str, Any]:
-        """
-        Synchronous version for AgentCore entrypoint
-
-        Same logic as async version but without await keywords
-        """
-        if not chat_log or not isinstance(chat_log, str):
-            raise ValueError("Invalid chat_log: must be non-empty string")
-
-        logger.info(f"AriadneClew processing transcript for session {self.session_id}")
-
-        try:
-            reasoning_prompt = self._build_reasoning_prompt(chat_log)
-            result = self.agent(reasoning_prompt)
-
-            # Log what we actually received for debugging
-            logger.info(f"Strands agent returned type: {type(result)}")
-            logger.info(f"Strands agent returned: {str(result)[:200]}...")
-
-            # Handle different response formats from strands.Agent
-            analysis = self._extract_analysis_from_result(result)
-            analysis["session_id"] = self.session_id
-            recap = self._format_for_demo(analysis)
-
-            logger.info(f"AriadneClew completed processing for session {self.session_id}")
-            return recap
-
-        except Exception as e:
-            logger.error(f"AriadneClew processing failed: {e}")
-            raise RuntimeError(f"Reasoning extraction failed: {str(e)}")
-
-    def _extract_analysis_from_result(self, result) -> Dict[str, Any]:
-        """
-        Extract structured analysis from strands.Agent result
-
-        Handles different possible return formats from the agent
-        """
-        try:
-            # Case 1: Strands Agent format with content array (MOST COMMON)
-            # Returns: {"role": "assistant", "content": [{"text": "```json\n{...}\n```"}], "session_id": "..."}
-            if isinstance(result, dict) and "content" in result:
-                content = result.get("content", [])
-                if isinstance(content, list) and len(content) > 0:
-                    text = content[0].get("text", "")
-                    if text:
-                        logger.info("✓ Extracting from Strands Agent content array format")
-                        return self._parse_agent_response(text)
-
-            # Case 2: Result has a message attribute (string)
-            elif hasattr(result, 'message'):
-                response_text = result.message
-                return self._parse_agent_response(response_text)
-
-            # Case 3: Result is already a dict with the data we need
-            elif isinstance(result, dict):
-                # If it looks like our expected structure, use it directly
-                if "aha_moments" in result or "code_snippets" in result:
-                    return result
-
-                # If it has a message key, parse that
-                elif "message" in result:
-                    return self._parse_agent_response(result["message"])
-
-                # If it's some other dict, try to convert to string and parse
-                else:
-                    return self._parse_agent_response(str(result))
-
-            # Case 4: Result is a string response
-            elif isinstance(result, str):
-                return self._parse_agent_response(result)
-
-            # Case 5: Unknown format - convert to string and try to parse
-            else:
-                logger.warning(f"Unknown result format: {type(result)}, converting to string")
-                return self._parse_agent_response(str(result))
-
-        except Exception as e:
-            logger.error(f"Failed to extract analysis from result: {e}")
-            logger.error(f"Result was: {result}")
-
-            # Return a minimal valid structure so the agent doesn't crash completely
-            return {
-                "session_id": self.session_id,
-                "aha_moments": ["Error processing agent response"],
-                "mvp_changes": [],
-                "code_snippets": [],
-                "design_tradeoffs": [],
-                "scope_creep": [],
-                "readme_notes": [],
-                "post_mvp_ideas": [],
-                "quality_flags": [f"Agent response parsing failed: {str(e)}"],
-                "summary": "Unable to process agent response properly"
-            }
+        return recap
 
     def _build_reasoning_prompt(self, chat_log: str) -> str:
         """Build the reasoning extraction prompt for AgentCore"""
         return f"""
-        You are Ariadne Clew, a reasoning preservation agent for AI-native builders.
+You are Ariadne Clew, a reasoning preservation agent for AI-native builders.
 
-        Analyze this chat transcript and extract structured insights:
+Analyze this chat transcript and extract structured insights (aha_moments, mvp_changes, code_snippets, design_tradeoffs, scope_creep, readme_notes, post_mvp_ideas, quality_flags, summary).
 
-        1. **Aha moments**: Key insights or discoveries
-        2. **MVP changes**: Scope edits, pivots, feature decisions
-        3. **Code snippets**: All code blocks with language and context
-        4. **Design tradeoffs**: Explicit rationale for choices
-        5. **Scope creep**: Evidence of expanding beyond MVP
-        6. **README notes**: Facts that belong in documentation
-        7. **Post-MVP ideas**: Features deferred for later
-        8. **Quality assessment**: Session structure evaluation
-
-        Return valid JSON with this structure:
-        {{
-          "session_id": "{self.session_id}",
-          "aha_moments": ["insight 1", "insight 2"],
-          "mvp_changes": ["change 1", "change 2"],
-          "code_snippets": [
-            {{
-              "content": "actual code here",
-              "language": "python|javascript|etc",
-              "user_marked_final": true|false,
-              "context": "why this code was written"
-            }}
-          ],
-          "design_tradeoffs": ["tradeoff 1", "tradeoff 2"],
-          "scope_creep": ["creep 1", "creep 2"],
-          "readme_notes": ["note 1", "note 2"],
-          "post_mvp_ideas": ["idea 1", "idea 2"],
-          "quality_flags": ["flag 1", "flag 2"],
-          "summary": "One paragraph session summary"
-        }}
-
-        Chat transcript:
-        {chat_log}
-
-        Return ONLY valid JSON. Empty arrays [] if no items found.
-        """
-
-    def _parse_agent_response(self, response: str) -> Dict[str, Any]:
-        """Parse the agent response into structured data"""
-        try:
-            # Handle case where response might already be a dict converted to string
-            if isinstance(response, dict):
-                return response
-
-            # Convert to string if it isn't already
-            response_str = str(response)
-
-            # Try to parse as JSON
-            if response_str.strip().startswith('{') and response_str.strip().endswith('}'):
-                return json.loads(response_str)
-
-            # Try to extract JSON from markdown code blocks
-            if '```json' in response_str:
-                start = response_str.find('```json') + 7
-                end = response_str.find('```', start)
-                if end != -1:
-                    json_str = response_str[start:end].strip()
-                    return json.loads(json_str)
-
-            # Try to extract JSON from any code block
-            if '```' in response_str:
-                start = response_str.find('```') + 3
-                end = response_str.find('```', start)
-                if end != -1:
-                    json_str = response_str[start:end].strip()
-                    # Skip language identifier if present
-                    if json_str.startswith('json\n'):
-                        json_str = json_str[5:]
-                    return json.loads(json_str)
-
-            # Fallback: try to find JSON anywhere in response
-            start = response_str.find('{')
-            end = response_str.rfind('}') + 1
-            if start != -1 and end > start:
-                json_str = response_str[start:end]
-                return json.loads(json_str)
-
-            raise ValueError("No valid JSON found in agent response")
-
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse agent response as JSON: {e}")
-            logger.error(f"Agent response was: {response}")
-            raise ValueError(f"Agent returned invalid JSON: {str(e)}")
+Return ONLY valid JSON.
+Chat transcript:
+{chat_log}
+"""
 
     def _format_for_demo(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
-        """Format the analysis for demo output"""
+        """Format output for the demo/bridge while validating against Recap if present."""
+        debug_print("🎨 FORMATTING FOR DEMO")
 
-        # Generate human-readable summary
-        human_readable = self._generate_human_summary(analysis)
+        # Human summary (HTML)
+        human_readable = _generate_human_summary_html(analysis)
 
-        # Try to validate with your existing schema
+        # Schema normalize + validate
         try:
-            # Create a compatible version for your existing schema
-            schema_compatible = {
-                "session_id": analysis.get("session_id"),
-                "summary": analysis.get("summary", ""),
-                "final": analysis.get("code_snippets", []),
-                "rejected_versions": [],  # Not used in new format
-                "aha_moments": analysis.get("aha_moments", []),
-                "scope_creep": analysis.get("scope_creep", [])
-            }
-
-            recap_model = Recap.model_validate(schema_compatible)
-            structured_data = format_recap(recap_model)
+            safe = _normalize_for_schema(analysis)
+            if Recap is not None:
+                recap_model = Recap.model_validate(safe)
+                structured_data = format_recap(recap_model)
+            else:
+                structured_data = analysis
+            debug_print("  ✅ Schema validation passed (or skipped)")
         except Exception as e:
-            logger.warning(f"Schema validation failed: {e}")
-            # Fallback - use analysis as-is
-            structured_data = analysis
+            debug_print(f"  ⚠️  Schema validation failed: {e}")
+            structured_data = analysis  # fallback
 
         return {
             "human_readable": human_readable,
@@ -298,153 +322,48 @@ class AriadneClew:
             }
         }
 
-    def _generate_human_summary(self, analysis: Dict[str, Any]) -> str:
-        """Generate scannable human-readable recap"""
+# -----------------------------------------------------------------------------
+# AgentCore entrypoint
+# -----------------------------------------------------------------------------
 
-        summary_parts = []
-
-        # Session overview
-        summary_parts.append(f"## Session Recap: {analysis.get('session_id', 'Unknown')}")
-        summary_parts.append("")
-
-        if analysis.get("summary"):
-            summary_parts.append(f"**Overview:** {analysis['summary']}")
-            summary_parts.append("")
-
-        # Key insights
-        if analysis.get("aha_moments"):
-            summary_parts.append("### Key Insights")
-            for moment in analysis["aha_moments"]:
-                summary_parts.append(f"- {moment}")
-            summary_parts.append("")
-
-        # Code found
-        if analysis.get("code_snippets"):
-            summary_parts.append("### Code Discovered")
-            for snippet in analysis["code_snippets"]:
-                lang = snippet.get("language", "code")
-                final_marker = "FINAL" if snippet.get("user_marked_final") else ""
-                summary_parts.append(f"**{lang} snippet** {final_marker}")
-                if snippet.get("context"):
-                    summary_parts.append(f"*Context*: {snippet['context']}")
-            summary_parts.append("")
-
-        # MVP changes
-        if analysis.get("mvp_changes"):
-            summary_parts.append("### Scope Changes")
-            for change in analysis["mvp_changes"]:
-                summary_parts.append(f"- {change}")
-            summary_parts.append("")
-
-        # Design decisions
-        if analysis.get("design_tradeoffs"):
-            summary_parts.append("### Design Decisions")
-            for tradeoff in analysis["design_tradeoffs"]:
-                summary_parts.append(f"- {tradeoff}")
-            summary_parts.append("")
-
-        # Post-MVP ideas
-        if analysis.get("post_mvp_ideas"):
-            summary_parts.append("### Post-MVP Ideas")
-            for idea in analysis["post_mvp_ideas"]:
-                summary_parts.append(f"- {idea}")
-            summary_parts.append("")
-
-        return "\n".join(summary_parts)
-
-
-# AgentCore entrypoint - this is how AgentCore calls your agent
 @app.entrypoint
 def invoke(payload):
     """
     AWS AgentCore entrypoint for Ariadne Clew.
-
-    Handles multiple payload formats for debugging.
     """
-    try:
-        # Debug logging to see what AgentCore is sending
-        logger.info(f"Received payload: {payload}")
+    debug_print("="*80)
+    debug_print("🎯 AGENTCORE ENTRYPOINT INVOKED")
+    debug_print(f"  Payload type: {type(payload)}")
+    debug_print(f"  Payload keys: {list(payload.keys()) if isinstance(payload, dict) else 'NOT A DICT'}")
+    debug_print("="*80)
 
-        # Try different payload formats that AgentCore might send
+    try:
         chat_log = payload.get("chat_log") or payload.get("prompt") or payload.get("message")
         session_id = payload.get("session_id", "agentcore-session")
 
         if not chat_log:
-            error_msg = f"Missing chat content in payload. Received keys: {list(payload.keys())}. Full payload: {payload}"
-            logger.error(error_msg)
-            return {
-                "error": error_msg,
-                "status": "failed"
-            }
+            error_msg = "Missing chat content."
+            debug_print(f"  ❌ {error_msg}")
+            return {"error": error_msg, "status": "failed"}
 
-        # Create AriadneClew instance and process
         ariadne = AriadneClew(session_id=session_id)
+        result = ariadne.process_transcript_sync(chat_log)
 
-        # Use sync version for AgentCore entrypoint
-        result = ariadne._process_transcript_sync(chat_log)
+        debug_print("="*80)
+        debug_print("✅ AGENTCORE ENTRYPOINT COMPLETE")
+        debug_print("="*80)
 
-        return {
-            "status": "success",
-            "result": result
-        }
+        return {"status": "success", "result": result}
 
     except Exception as e:
         error_msg = f"AgentCore entrypoint failed: {str(e)}"
+        debug_print("="*80)
+        debug_print(f"❌ ENTRYPOINT ERROR: {error_msg}")
+        debug_print("="*80)
         logger.error(error_msg, exc_info=True)
-        return {
-            "status": "failed",
-            "error": error_msg
-        }
+        return {"status": "failed", "error": error_msg}
 
-
-# Backwards compatibility function
-async def process_chat_log(chat_log: str, session_id: str = "default") -> Dict[str, Any]:
-    """Backwards compatible entry point"""
-    ariadne = AriadneClew(session_id=session_id)
-    return await ariadne.process_transcript(chat_log)
-
-
-# Demo function
-async def demo_ariadne_clew():
-    """Demo AriadneClew with sample transcript"""
-    sample_transcript = """
-    User: I need a function to calculate fibonacci numbers for my project
-
-    Assistant: Here's a recursive approach:
-
-    def fibonacci(n):
-        if n <= 1:
-            return n
-        return fibonacci(n-1) + fibonacci(n-2)
-
-    User: Actually, that might be slow for large numbers. Can we do iterative?
-
-    Assistant: Good point! Here's an iterative version:
-
-    def fibonacci(n):
-        if n <= 1:
-            return n
-        a, b = 0, 1
-        for _ in range(2, n + 1):
-            a, b = b, a + b
-        return b
-
-    User: Perfect, let's go with the iterative version as final.
-    """
-
-    ariadne = AriadneClew(session_id="demo")
-    result = await ariadne.process_transcript(sample_transcript)
-
-    print("=== HUMAN READABLE ===")
-    print(result["human_readable"])
-    print("\n=== STRUCTURED DATA ===")
-    print(json.dumps(result["structured_data"], indent=2))
-    print("\n=== AGENT METADATA ===")
-    print(json.dumps(result["agent_metadata"], indent=2))
-
-
-# For local testing with AgentCore
+# For local bare run (AgentCore will normally handle the service lifecycle)
 if __name__ == "__main__":
-    print("Starting Ariadne Clew AgentCore app...")
-    print("Test with: curl -X POST http://localhost:8080/invocations -H 'Content-Type: application/json' -d '{\"chat_log\": \"User: Hello\\nAssistant: Hi there!\"}'")
+    debug_print("🚀 Starting Ariadne Clew AgentCore app...")
     app.run()
