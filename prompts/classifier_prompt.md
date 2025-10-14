@@ -29,14 +29,28 @@ Format must be valid, parseable JSON.
       "content": "string",
       "language": "string",
       "user_marked_final": boolean,
-      "context": "string"
+      "context": "string",
+      "file": "string (optional)"
     }
   ],
   "design_tradeoffs": ["string"],
   "scope_creep": ["string"],
   "readme_notes": ["string"],
   "post_mvp_ideas": ["string"],
-  "quality_flags": ["string"],
+  "quality_flags": [
+    {
+      "issue": "string",
+      "severity": "critical|high|medium|low",
+      "file": "string (optional)"
+    }
+  ],
+  "quality_scores": [
+    {
+      "component": "string",
+      "score": "number (1-10) or string (e.g., '9/10')",
+      "rationale": "string"
+    }
+  ],
   "summary": "string"
 }
 ```
@@ -53,11 +67,19 @@ Format must be valid, parseable JSON.
   - `language`: Programming language (e.g., "python", "javascript", "bash")
   - `user_marked_final`: Did the user explicitly say this is the final version? (boolean)
   - `context`: Brief explanation of why this code was written (string)
+  - `file` (optional): Which file this code belongs to (e.g., "extension.ts", "package.json")
 - `design_tradeoffs` — Explicit rationale for architectural or technical choices (e.g., "Chose SQLite over Postgres for simpler deployment")
 - `scope_creep` — Evidence of expanding beyond MVP or overbuilding
 - `readme_notes` — Facts, commands, or concepts that belong in the README
 - `post_mvp_ideas` — Ideas explicitly deferred until after MVP
-- `quality_flags` — Warnings or praise on structure, clarity, or focus (e.g., "⚠️ Repeated scope shifts")
+- `quality_flags` — Warnings, issues, or praise with structured severity:
+  - `issue`: Description of the quality concern or strength
+  - `severity`: One of: "critical" (blocks deployment), "high" (urgent), "medium" (important), "low" (nice-to-have)
+  - `file` (optional): Which file/component this affects
+- `quality_scores` — Numerical assessments when explicit scores are given in the transcript:
+  - `component`: What's being scored (e.g., "package.json", "overall architecture", "test coverage")
+  - `score`: Numerical score (1-10) or string format (e.g., "9/10", "B+")
+  - `rationale`: Brief explanation of the score
 - `summary` — A concise 3–5 sentence overview of what the session accomplished
 
 ---
@@ -80,13 +102,15 @@ Format must be valid, parseable JSON.
       "content": "app.run(host='0.0.0.0', port=5000, debug=False)",
       "language": "python",
       "user_marked_final": true,
-      "context": "Fixed Flask server configuration to prevent crash loops during requests"
+      "context": "Fixed Flask server configuration to prevent crash loops during requests",
+      "file": "bridge_server.py"
     },
     {
-      "content": "env['NO_COLOR'] = '1'\nenv['TERM'] = 'dumb'",
-      "language": "python",
+      "content": "if ((exists(\"requirements.txt\") or exists(\"pyproject.toml\")) and tsjsFiles.length > 0)",
+      "language": "typescript",
       "user_marked_final": false,
-      "context": "Environment variables to disable Rich console formatting"
+      "context": "Buggy code using Python syntax in TypeScript - needs fixing",
+      "file": "extension.ts"
     }
   ],
   "design_tradeoffs": [
@@ -105,9 +129,37 @@ Format must be valid, parseable JSON.
     "Multi-session comparison dashboard"
   ],
   "quality_flags": [
-    "✅ Strong planning and iterative debugging",
-    "✅ Applied Occam's Razor to simplify solutions",
-    "⚠️ Some prompt/documentation drift between files"
+    {
+      "issue": "Python 'or/and' operators used in TypeScript will cause crashes",
+      "severity": "critical",
+      "file": "extension.ts"
+    },
+    {
+      "issue": "Poor testability - all logic embedded in VS Code command",
+      "severity": "high",
+      "file": "extension.ts"
+    },
+    {
+      "issue": "Strong planning and iterative debugging methodology",
+      "severity": "low"
+    }
+  ],
+  "quality_scores": [
+    {
+      "component": "package.json",
+      "score": "9/10",
+      "rationale": "Clean config with proper activation events, but lacks repository metadata"
+    },
+    {
+      "component": "extension.ts",
+      "score": "7/10",
+      "rationale": "Great logic and heuristics, but needs extraction and critical bug fix"
+    },
+    {
+      "component": "tsconfig.json",
+      "score": "10/10",
+      "rationale": "Perfectly configured with strict mode and proper module interop"
+    }
   ],
   "summary": "This session finalized Ariadne Clew's architecture and debugged the bridge server integration. The user systematically solved UTF-8 encoding issues, Strands Agent response parsing, and JSON extraction from Rich console output. Demonstrated strong debugging methodology and product thinking by questioning feature value before over-engineering solutions."
 }
@@ -123,15 +175,21 @@ Format must be valid, parseable JSON.
 - Include 1–3 quality flags for every session.
 - For code_snippets: Extract ALL code blocks, regardless of size
 - For design_tradeoffs: Look for explicit reasoning like "chose X over Y because..."
+- For quality_flags: Use severity levels consistently:
+  - **critical**: Blocks deployment, must fix immediately
+  - **high**: Urgent technical debt or architectural issue
+  - **medium**: Important improvement, should address soon
+  - **low**: Nice-to-have or positive observation
+- For quality_scores: Only include when numerical scores are explicitly mentioned in the transcript (e.g., "8/10", "Score: 7", "B+")
 
 ---
 
 ### 🔧 Tuning Tips
-The current schema includes 9 core fields proven through production use:
+The current schema includes 10 core fields proven through production use:
 - `session_id`, `aha_moments`, `mvp_changes` → Core reasoning tracking
 - `code_snippets`, `design_tradeoffs` → Technical artifacts and rationale
 - `scope_creep`, `readme_notes`, `post_mvp_ideas` → Scope management
-- `quality_flags`, `summary` → Session metadata
+- `quality_flags`, `quality_scores`, `summary` → Session metadata and assessment
 
 If you add new fields, ensure they are:
 - Clear in purpose
@@ -144,12 +202,15 @@ Potential future fields:
 - `deleted_features`
 - `open_questions`
 - `blocked_by`
+- `dependencies_added`
+- `testing_coverage`
 
 ---
 
 ### 📝 Version History
 - **v1**: Original 7-field schema (session_id through quality_flags)
-- **v2** (current): Added `code_snippets` and `design_tradeoffs` based on production usage patterns
+- **v2**: Added `code_snippets` and `design_tradeoffs` based on production usage patterns
+- **v3** (current): Enhanced quality_flags with severity levels and file context; added quality_scores for numerical assessments; added optional file field to code_snippets
 
 ---
 
