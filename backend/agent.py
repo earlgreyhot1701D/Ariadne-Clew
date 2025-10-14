@@ -147,11 +147,15 @@ def _normalize_for_schema(analysis: Dict[str, Any]) -> Dict[str, Any]:
     snips = analysis.get("code_snippets") or []
     if isinstance(snips, list) and snips:
         s = snips[0] if isinstance(snips[0], dict) else {}
+        # Handle both old (code) and new (content) field names
+        code_content = s.get("content") or s.get("code", "")
+        code_context = s.get("context") or s.get("description", "")
+
         final_snip = {
             "language": s.get("language", "text"),
-            "content": s.get("content", ""),
+            "content": code_content,
             "user_marked_final": bool(s.get("user_marked_final", False)),
-            "context": s.get("context", ""),
+            "context": code_context,
         }
     else:
         final_snip = {"language": "text", "content": "", "user_marked_final": False, "context": ""}
@@ -202,15 +206,30 @@ def _generate_human_summary_html(analysis: Dict[str, Any]) -> str:
         parts.append("<h3>Design Tradeoffs</h3>")
         parts.append(_to_html_list([str(t) for t in tradeoffs]))
 
+    # FIX: Code snippets - show actual code content, not just labels
     if snips:
         parts.append("<h3>Code Discovered</h3>")
-        labels = []
-        for s in snips[:3]:
+        snippet_items = []
+        for s in snips[:3]:  # Limit to first 3 snippets
+            # Handle both old schema (code/description) and new schema (content/context)
+            code_content = (s or {}).get("content") or (s or {}).get("code", "")
+            code_context = (s or {}).get("context") or (s or {}).get("description", "")
             lang = (s or {}).get("language", "text")
-            ctx = (s or {}).get("context", "")
-            label = f"[{lang}] {ctx}".strip() or f"[{lang}] snippet"
-            labels.append(label)
-        parts.append(_to_html_list(labels))
+
+            # Build snippet display with actual code preview
+            if code_content:
+                # Show first 150 chars of code
+                preview = code_content[:150] + ("..." if len(code_content) > 150 else "")
+                snippet_text = f"<strong>[{html.escape(lang)}]</strong> <code>{html.escape(preview)}</code>"
+                if code_context:
+                    snippet_text += f" <em>({html.escape(code_context)})</em>"
+                snippet_items.append(snippet_text)
+            elif code_context:
+                # No code content but has context - at least show that
+                snippet_items.append(f"<strong>[{html.escape(lang)}]</strong> {html.escape(code_context)}")
+
+        if snippet_items:
+            parts.append("<ul>" + "".join(f"<li>{item}</li>" for item in snippet_items) + "</ul>")
 
     if post:
         parts.append("<h3>Post-MVP Ideas</h3>")
@@ -279,12 +298,25 @@ class AriadneClew:
 
     def _build_reasoning_prompt(self, chat_log: str) -> str:
         """Build the reasoning extraction prompt for AgentCore"""
+        # Read the full prompt from classifier_prompt.md if available
+        # For now, use inline version
         return f"""
 You are Ariadne Clew, a reasoning preservation agent for AI-native builders.
 
-Analyze this chat transcript and extract structured insights (aha_moments, mvp_changes, code_snippets, design_tradeoffs, scope_creep, readme_notes, post_mvp_ideas, quality_flags, summary).
+Analyze this chat transcript and extract structured insights:
 
-Return ONLY valid JSON.
+1. **Aha moments**: Key insights or discoveries
+2. **MVP changes**: Scope edits, pivots, feature decisions
+3. **Code snippets**: All code blocks with language and context
+4. **Design tradeoffs**: Explicit rationale for choices
+5. **Scope creep**: Evidence of expanding beyond MVP
+6. **README notes**: Facts that belong in documentation
+7. **Post-MVP ideas**: Features deferred for later
+8. **Quality flags**: Warnings or praise (with severity)
+9. **Quality scores**: Numerical assessments if mentioned
+
+Return ONLY valid JSON with fields: session_id, aha_moments, mvp_changes, code_snippets (with content, language, user_marked_final, context, file), design_tradeoffs, scope_creep, readme_notes, post_mvp_ideas, quality_flags (with issue, severity, file), quality_scores (with component, score, rationale), summary.
+
 Chat transcript:
 {chat_log}
 """
