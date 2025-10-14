@@ -252,6 +252,17 @@
       transform: translateY(0);
     }
 
+    #clear-btn {
+      background: var(--panel);
+      color: var(--text);
+      border: 2px solid var(--border);
+    }
+
+    #clear-btn:hover {
+      background: var(--border);
+      transform: translateY(-2px);
+    }
+
     /* Improved status indicator */
     #status {
       padding: 1rem 1.5rem;
@@ -529,6 +540,7 @@
 
       <div class="actions">
         <button type="submit" id="submit-btn">🚀 Extract Reasoning</button>
+        <button type="button" id="clear-btn">🗑️ Clear</button>
       </div>
     </form>
 
@@ -578,7 +590,7 @@
         🌓 Toggle Dark Mode
       </div>
       <p>Built with AWS AgentCore Runtime + Amazon Bedrock | AWS Agent Hackathon 2025</p>
-      <p>© 2025 La Shara Cordero | <a href="https://github.com/yourusername/ariadne-clew" style="color: #667eea; text-decoration: none;">GitHub</a></p>
+      <p>© 2025 La Shara Cordero | <a href="https://github.com/earlgreyhot1701D/Ariadne-Clew" style="color: #667eea; text-decoration: none;">GitHub</a></p>
     </footer>
   </div>
 
@@ -586,5 +598,46 @@
   <script type="module" src="scripts/api_js.js"></script>
   <script type="module" src="scripts/dom_js.js"></script>
   <script type="module" src="scripts/main_js.js"></script>
+
+  <!-- Clear Button Handler - ADD THIS INLINE -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const clearBtn = document.getElementById('clear-btn');
+      const sessionInput = document.getElementById('session-id');
+      const humanContent = document.querySelector('#humanOutput .panel-content');
+      const jsonContent = document.querySelector('#jsonOutput .panel-content');
+      const status = document.getElementById('status');
+
+      clearBtn.addEventListener('click', () => {
+        // Clear input
+        sessionInput.value = '';
+
+        // Reset human output to empty state
+        humanContent.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🧶</div>
+            <p>Your reasoning extraction will appear here</p>
+            <p style="font-size: 0.85rem;">Enter a chat transcript above to get started</p>
+          </div>
+        `;
+
+        // Reset JSON output to empty state
+        jsonContent.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">{ }</div>
+            <p>Machine-readable output will appear here</p>
+            <p style="font-size: 0.85rem;">Perfect for integrations and automation</p>
+          </div>
+        `;
+
+        // Hide status
+        status.style.display = 'none';
+        status.className = '';
+
+        // Focus back on input
+        sessionInput.focus();
+      });
+    });
+  </script>
 </body>
 </html>
