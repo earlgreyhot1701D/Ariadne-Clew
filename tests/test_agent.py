@@ -23,25 +23,27 @@ def sample_chat_log():
 def mock_agent_response():
     """Mock response from strands.Agent"""
     mock_response = Mock()
-    mock_response.message = json.dumps({
-        "session_id": "test-session",
-        "aha_moments": ["Slicing is the simplest approach"],
-        "mvp_changes": ["Added string reversal utility"],
-        "code_snippets": [
-            {
-                "content": "def reverse_string(s):\n    return s[::-1]",
-                "language": "python",
-                "user_marked_final": True,
-                "context": "User requested string reversal function"
-            }
-        ],
-        "design_tradeoffs": ["Chose slicing over loop for readability"],
-        "scope_creep": [],
-        "readme_notes": ["String utilities module needed"],
-        "post_mvp_ideas": ["Add input validation"],
-        "quality_flags": [],
-        "summary": "Created simple string reversal function"
-    })
+    mock_response.message = json.dumps(
+        {
+            "session_id": "test-session",
+            "aha_moments": ["Slicing is the simplest approach"],
+            "mvp_changes": ["Added string reversal utility"],
+            "code_snippets": [
+                {
+                    "content": "def reverse_string(s):\n    return s[::-1]",
+                    "language": "python",
+                    "user_marked_final": True,
+                    "context": "User requested string reversal function",
+                }
+            ],
+            "design_tradeoffs": ["Chose slicing over loop for readability"],
+            "scope_creep": [],
+            "readme_notes": ["String utilities module needed"],
+            "post_mvp_ideas": ["Add input validation"],
+            "quality_flags": [],
+            "summary": "Created simple string reversal function",
+        }
+    )
     return mock_response
 
 
@@ -54,7 +56,7 @@ class TestAriadneClew:
     ):
         """AriadneClew should process transcript using real AgentCore"""
 
-        with patch('backend.agent.agent') as mock_agent:
+        with patch("backend.agent.agent") as mock_agent:
             mock_agent.return_value = mock_agent_response
 
             ariadne = AriadneClew(session_id="test-session")
@@ -92,11 +94,11 @@ class TestAriadneClew:
             # JSON in generic code block
             '```\n{"test": "value"}\n```',
             # JSON mixed with text
-            'Here is the analysis: {"test": "value"} Hope this helps!'
+            'Here is the analysis: {"test": "value"} Hope this helps!',
         ]
 
         for response_format in test_cases:
-            with patch('backend.agent.agent') as mock_agent:
+            with patch("backend.agent.agent") as mock_agent:
                 mock_response = Mock()
                 mock_response.message = response_format
                 mock_agent.return_value = mock_response
@@ -115,7 +117,7 @@ class TestAriadneClew:
     async def test_invalid_json_handling(self, sample_chat_log):
         """AriadneClew should handle invalid JSON gracefully"""
 
-        with patch('backend.agent.agent') as mock_agent:
+        with patch("backend.agent.agent") as mock_agent:
             mock_response = Mock()
             mock_response.message = "This is not JSON at all, just plain text"
             mock_agent.return_value = mock_response
@@ -129,7 +131,7 @@ class TestAriadneClew:
     async def test_agent_error_handling(self, sample_chat_log):
         """AriadneClew should handle strands.Agent errors gracefully"""
 
-        with patch('backend.agent.agent') as mock_agent:
+        with patch("backend.agent.agent") as mock_agent:
             mock_agent.side_effect = Exception("Strands agent failed")
 
             ariadne = AriadneClew(session_id="test-error")
@@ -167,12 +169,12 @@ class TestAriadneClew:
                     "content": "def test(): pass",
                     "language": "python",
                     "user_marked_final": True,
-                    "context": "Test function"
+                    "context": "Test function",
                 }
             ],
             "mvp_changes": ["Added test functionality"],
             "design_tradeoffs": ["Simplicity over performance"],
-            "post_mvp_ideas": ["Add error handling"]
+            "post_mvp_ideas": ["Add error handling"],
         }
 
         ariadne = AriadneClew(session_id="test-summary")
@@ -195,12 +197,12 @@ class TestAgentCoreEntrypoint:
     def test_agentcore_invoke_success(self, mock_agent_response):
         """AgentCore entrypoint should handle valid payloads"""
 
-        with patch('backend.agent.agent') as mock_agent:
+        with patch("backend.agent.agent") as mock_agent:
             mock_agent.return_value = mock_agent_response
 
             payload = {
                 "chat_log": "User: Hello\nAssistant: Hi there!",
-                "session_id": "agentcore-test"
+                "session_id": "agentcore-test",
             }
 
             result = invoke(payload)
@@ -222,12 +224,10 @@ class TestAgentCoreEntrypoint:
     def test_agentcore_invoke_processing_error(self):
         """AgentCore entrypoint should handle processing errors"""
 
-        with patch('backend.agent.agent') as mock_agent:
+        with patch("backend.agent.agent") as mock_agent:
             mock_agent.side_effect = Exception("Processing failed")
 
-            payload = {
-                "chat_log": "User: Hello\nAssistant: Hi there!"
-            }
+            payload = {"chat_log": "User: Hello\nAssistant: Hi there!"}
 
             result = invoke(payload)
 
@@ -244,7 +244,7 @@ class TestBackwardsCompatibility:
     ):
         """process_chat_log() should work as drop-in replacement"""
 
-        with patch('backend.agent.agent') as mock_agent:
+        with patch("backend.agent.agent") as mock_agent:
             mock_agent.return_value = mock_agent_response
 
             result = await process_chat_log(sample_chat_log, session_id="compat-test")
@@ -262,30 +262,33 @@ class TestDemo:
     async def test_demo_runs_without_error(self, mock_agent_response):
         """Demo function should execute without raising exceptions"""
 
-        with patch('backend.agent.agent') as mock_agent, \
-             patch('builtins.print') as mock_print:
+        with patch("backend.agent.agent") as mock_agent, patch(
+            "builtins.print"
+        ) as mock_print:
 
             # Mock the fibonacci demo response
             fibonacci_response = Mock()
-            fibonacci_response.message = json.dumps({
-                "session_id": "demo",
-                "aha_moments": ["Iterative approach is more efficient"],
-                "mvp_changes": ["Switched from recursive to iterative"],
-                "code_snippets": [
-                    {
-                        "content": "def fibonacci(n):\n    if n <= 1:\n        return n\n    a, b = 0, 1\n    for _ in range(2, n + 1):\n        a, b = b, a + b\n    return b",
-                        "language": "python",
-                        "user_marked_final": True,
-                        "context": "Final fibonacci implementation"
-                    }
-                ],
-                "design_tradeoffs": ["Performance over simplicity"],
-                "scope_creep": [],
-                "readme_notes": [],
-                "post_mvp_ideas": [],
-                "quality_flags": [],
-                "summary": "Implemented efficient Fibonacci function"
-            })
+            fibonacci_response.message = json.dumps(
+                {
+                    "session_id": "demo",
+                    "aha_moments": ["Iterative approach is more efficient"],
+                    "mvp_changes": ["Switched from recursive to iterative"],
+                    "code_snippets": [
+                        {
+                            "content": "def fibonacci(n):\n    if n <= 1:\n        return n\n    a, b = 0, 1\n    for _ in range(2, n + 1):\n        a, b = b, a + b\n    return b",
+                            "language": "python",
+                            "user_marked_final": True,
+                            "context": "Final fibonacci implementation",
+                        }
+                    ],
+                    "design_tradeoffs": ["Performance over simplicity"],
+                    "scope_creep": [],
+                    "readme_notes": [],
+                    "post_mvp_ideas": [],
+                    "quality_flags": [],
+                    "summary": "Implemented efficient Fibonacci function",
+                }
+            )
             mock_agent.return_value = fibonacci_response
 
             # Import and run demo
@@ -306,9 +309,9 @@ class TestIntegration:
     async def test_full_pipeline_with_real_agentcore_mocking(self, sample_chat_log):
         """Test complete pipeline with realistic AgentCore mocking"""
 
-        with patch('bedrock_agentcore.BedrockAgentCoreApp') as mock_app, \
-             patch('strands.Agent') as mock_agent_class, \
-             patch('backend.agent.agent') as mock_agent_instance:
+        with patch("bedrock_agentcore.BedrockAgentCoreApp") as mock_app, patch(
+            "strands.Agent"
+        ) as mock_agent_class, patch("backend.agent.agent") as mock_agent_instance:
 
             # Mock the BedrockAgentCoreApp initialization
             mock_app.return_value = Mock()
@@ -316,25 +319,27 @@ class TestIntegration:
 
             # Mock realistic agent response
             mock_response = Mock()
-            mock_response.message = json.dumps({
-                "session_id": "integration-test",
-                "aha_moments": ["String slicing is elegant"],
-                "mvp_changes": ["Added string utility"],
-                "code_snippets": [
-                    {
-                        "content": "def reverse_string(s):\n    return s[::-1]",
-                        "language": "python",
-                        "user_marked_final": True,
-                        "context": "User requested string reversal"
-                    }
-                ],
-                "design_tradeoffs": ["Simplicity over verbosity"],
-                "scope_creep": [],
-                "readme_notes": ["Document string utilities"],
-                "post_mvp_ideas": ["Add type hints"],
-                "quality_flags": [],
-                "summary": "Created string reversal utility"
-            })
+            mock_response.message = json.dumps(
+                {
+                    "session_id": "integration-test",
+                    "aha_moments": ["String slicing is elegant"],
+                    "mvp_changes": ["Added string utility"],
+                    "code_snippets": [
+                        {
+                            "content": "def reverse_string(s):\n    return s[::-1]",
+                            "language": "python",
+                            "user_marked_final": True,
+                            "context": "User requested string reversal",
+                        }
+                    ],
+                    "design_tradeoffs": ["Simplicity over verbosity"],
+                    "scope_creep": [],
+                    "readme_notes": ["Document string utilities"],
+                    "post_mvp_ideas": ["Add type hints"],
+                    "quality_flags": [],
+                    "summary": "Created string reversal utility",
+                }
+            )
             mock_agent_instance.return_value = mock_response
 
             # Run full pipeline

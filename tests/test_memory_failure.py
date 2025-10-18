@@ -6,7 +6,13 @@ def test_persistence_failure_raises(monkeypatch):
     """If store_recap fails, RuntimeError should bubble up to caller."""
     monkeypatch.setattr(
         "api_recap.classify_with_bedrock",
-        lambda prompt: [{"type": "code", "content": "print('ok')", "validation": {"status": "valid"}}],
+        lambda prompt: [
+            {
+                "type": "code",
+                "content": "print('ok')",
+                "validation": {"status": "valid"},
+            }
+        ],
     )
     monkeypatch.setattr("api_recap.store_recap", lambda *a, **kw: False)
 

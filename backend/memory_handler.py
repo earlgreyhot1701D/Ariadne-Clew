@@ -17,14 +17,18 @@ def _key_to_path(key: str, session_id: Optional[str] = None) -> Path:
     """Sanitize key into a safe filename, optionally namespaced by session."""
     safe_key = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in key)
     if session_id:
-        safe_session = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in session_id)
+        safe_session = "".join(
+            ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in session_id
+        )
         ns_dir = _CACHE_DIR / safe_session
         ns_dir.mkdir(parents=True, exist_ok=True)
         return ns_dir / f"{safe_key}.json"
     return _CACHE_DIR / f"{safe_key}.json"
 
 
-def store_recap(key: str, recap: Dict[str, Any], session_id: Optional[str] = None) -> None:
+def store_recap(
+    key: str, recap: Dict[str, Any], session_id: Optional[str] = None
+) -> None:
     """
     Persist a recap dict to disk under a given key.
     Raises IOError if write fails.

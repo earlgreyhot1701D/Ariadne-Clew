@@ -32,7 +32,7 @@
 /* Base Layout */
 body {
   margin: 0;
-  font-family: "Poppins", sans-serif;
+  font-family: 'Poppins', sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
@@ -72,7 +72,7 @@ header.hero .tagline {
 
 /* Labyrinth thread line */
 header.hero::after {
-  content: "";
+  content: '';
   position: absolute;
   bottom: 0;
   left: 50%;
@@ -85,8 +85,12 @@ header.hero::after {
 }
 
 @keyframes pulseThread {
-  from { opacity: 0.4; }
-  to { opacity: 1; }
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* Form */
@@ -101,7 +105,8 @@ label {
   font-weight: 500;
 }
 
-input[type="text"], input[type="file"] {
+input[type='text'],
+input[type='file'] {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -162,7 +167,7 @@ button:hover {
   padding: 1.5rem;
   margin-top: 1.5rem;
   box-shadow: 0 0 15px var(--accent-glow);
-  font-family: "Source Code Pro", monospace;
+  font-family: 'Source Code Pro', monospace;
   white-space: pre-wrap;
   overflow-x: auto;
 }
@@ -202,7 +207,7 @@ footer {
 }
 
 .slider:before {
-  content: "";
+  content: '';
   position: absolute;
   height: 18px;
   width: 18px;

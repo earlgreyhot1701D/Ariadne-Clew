@@ -5,6 +5,7 @@ This file provides persistent context and conventions for AI agents that work in
 ---
 
 ## 🧵 Core Identity
+
 - **Project**: Ariadne Clew (AC)
 - **Mission**: Preserve reasoning from messy chat-driven developer workflows.
 - **Tagline**: "Git tracks what changed. AC tracks why."
@@ -13,6 +14,7 @@ This file provides persistent context and conventions for AI agents that work in
 ---
 
 ## 🔑 Key Concepts
+
 - **Final Snippet**: last validated code block, parsed by the Python AST and validated against schema rules.
 - **Rejected Versions**: invalid or abandoned snippets, with reasons logged.
 - **Aha Moments**: breakthrough insights extracted from transcripts.
@@ -22,6 +24,7 @@ This file provides persistent context and conventions for AI agents that work in
 ---
 
 ## ⚖️ Guardrails and Safety Rules
+
 - **Execution**: do not call `exec()`. Use AST parsing and controlled evaluation only.
 - **Input Size**: reject inputs above 100000 characters, about 20k tokens.
 - **Deny Terms**: `password`, `api_key`, `rm -rf /`, `BEGIN RSA PRIVATE KEY`.
@@ -32,6 +35,7 @@ This file provides persistent context and conventions for AI agents that work in
 ---
 
 ## 🏗️ File and Module Conventions
+
 - **api_recap.py**: pipeline entry point.
 - **filters.py**: deny list, PII scrub, input size guard.
 - **classifier.py**: separates plain text and code, tags code intent.
@@ -44,12 +48,14 @@ This file provides persistent context and conventions for AI agents that work in
 - **tests/**: pytest coverage for filters, classifier edges, and end to end recap.
 
 Directory suggestions:
+
 - **/prompts/**: `system_prompt.md` and any model context files.
 - **/configs/**: model and AgentCore configuration if needed.
 
 ---
 
 ## 🎨 Output Requirements
+
 - **JSON recap fields**: `session_id`, `final`, `rejected_versions`, `aha_moments`, `summary`, `quality_flags`.
 - **Human recap headings**:
   - 📌 What You Built
@@ -62,6 +68,7 @@ Directory suggestions:
 ---
 
 ## 🤖 Agent Behaviors
+
 - Apply **filters** before classification.
 - Load **AGENTS.md** as context before generating or editing code.
 - **Default model**: Claude Sonnet on Bedrock. **Fallbacks**: Nova or Titan, with schema validation.
@@ -71,6 +78,7 @@ Directory suggestions:
 ---
 
 ## 🧪 Testing Expectations
+
 - `tests/test_filters.py`: size limits, deny terms, PII scrub.
 - `tests/test_classifier_edges.py`: tricky fences and escaped backticks.
 - `tests/test_e2e_recap.py`: happy path, oversized input rejection, unsafe term rejection.
@@ -78,6 +86,7 @@ Directory suggestions:
 ---
 
 ## 📝 Style Notes
+
 - **Tone**: indie operator, hackathon builder, cheeky yet clear.
 - **Docs**: function docstrings required. Inline prose should be minimal.
 - **Schema**: Pydantic with `extra = "forbid"`.
@@ -85,5 +94,6 @@ Directory suggestions:
 ---
 
 ## 📍 Placement
+
 - Place **AGENTS.md** at the repo root so every tool and human can find it.
 - Place **system_prompt.md** in `/prompts/`. Reference it from AgentCore configuration.

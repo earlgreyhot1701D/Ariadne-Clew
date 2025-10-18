@@ -7,7 +7,6 @@ import json
 import logging
 import uuid
 import os
-import sys
 
 app = Flask(__name__)
 CORS(app)
@@ -17,75 +16,99 @@ logger = logging.getLogger(__name__)
 
 # Get the full path to agentcore executable in venv
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-VENV_SCRIPTS = os.path.join(SCRIPT_DIR, '.venv', 'Scripts')
-AGENTCORE_PATH = os.path.join(VENV_SCRIPTS, 'agentcore.exe')
+VENV_SCRIPTS = os.path.join(SCRIPT_DIR, ".venv", "Scripts")
+AGENTCORE_PATH = os.path.join(VENV_SCRIPTS, "agentcore.exe")
 
 if not os.path.exists(AGENTCORE_PATH):
-    AGENTCORE_PATH = 'agentcore'
+    AGENTCORE_PATH = "agentcore"
     logger.warning(f"agentcore.exe not found in venv, using PATH: {AGENTCORE_PATH}")
 else:
     logger.info(f"Using agentcore from: {AGENTCORE_PATH}")
 
-@app.route('/', methods=['GET'])
+
+@app.route("/", methods=["GET"])
 def serve_frontend():
-    return send_from_directory('public', 'index.html')
+    return send_from_directory("public", "index.html")
 
-@app.route('/<path:filename>')
+
+@app.route("/<path:filename>")
 def serve_static(filename):
-    return send_from_directory('public', filename)
+    return send_from_directory("public", filename)
 
-@app.route('/health', methods=['GET'])
+
+@app.route("/health", methods=["GET"])
 def health_check():
-    return jsonify({
-        "status": "healthy",
-        "service": "Ariadne Clew Bridge",
-        "agentcore_ready": os.path.exists(AGENTCORE_PATH) if AGENTCORE_PATH.endswith('.exe') else True
-    })
+    return jsonify(
+        {
+            "status": "healthy",
+            "service": "Ariadne Clew Bridge",
+            "agentcore_ready": (
+                os.path.exists(AGENTCORE_PATH)
+                if AGENTCORE_PATH.endswith(".exe")
+                else True
+            ),
+        }
+    )
 
-@app.route('/v1/recap', methods=['POST'])
+
+@app.route("/v1/recap", methods=["POST"])
 def get_recap():
     try:
         data = request.json
-        chat_log = data.get('chat_log', '')
+        chat_log = data.get("chat_log", "")
 
         # ALWAYS generate proper session ID (AgentCore requires 33+ chars)
-        provided_session = data.get('session_id', '')
+        provided_session = data.get("session_id", "")
         if provided_session and len(provided_session) >= 33:
             session_id = provided_session
         else:
-            session_id = f'session-{uuid.uuid4()}'
+            session_id = f"session-{uuid.uuid4()}"
             logger.info(f"Generated new session ID: {session_id}")
 
         logger.info(f"Processing recap for session: {session_id}")
         logger.info(f"Chat log length: {len(chat_log)} characters")
 
         # Session size constraints
-        RECOMMENDED_MAX = 50000  # ~35K words, 1-2 hour focused session (optimal for 60s timeout)
-        ABSOLUTE_MAX = 200000    # Hard API limit (Bedrock token constraints)
+        RECOMMENDED_MAX = (
+            50000  # ~35K words, 1-2 hour focused session (optimal for 60s timeout)
+        )
+        ABSOLUTE_MAX = 200000  # Hard API limit (Bedrock token constraints)
 
         # Validate input
         if not chat_log.strip():
-            return jsonify({
-                "error": "chat_log cannot be empty",
-                "human_readable": "Please provide a chat transcript to analyze"
-            }), 400
+            return (
+                jsonify(
+                    {
+                        "error": "chat_log cannot be empty",
+                        "human_readable": "Please provide a chat transcript to analyze",
+                    }
+                ),
+                400,
+            )
 
         # Hard limit: Exceeds API constraints
         if len(chat_log) > ABSOLUTE_MAX:
-            return jsonify({
-                "error": "conversation_too_long",
-                "human_readable": f"**Session Too Large**\n\nYour conversation is {len(chat_log):,} characters. Ariadne Clew has a maximum limit of {ABSOLUTE_MAX:,} characters due to Bedrock API token constraints.\n\n**Recommendation:** Analyze specific portions of your conversation instead of the entire history. Break at natural boundaries (topic shifts, task completions) for better insights.\n\n**Tip:** Focused sessions (2K-50K chars) produce clearer, more actionable recaps.",
-                "status": "error",
-                "details": {
-                    "chars_provided": len(chat_log),
-                    "absolute_max": ABSOLUTE_MAX,
-                    "recommended_max": RECOMMENDED_MAX
-                }
-            }), 413
+            return (
+                jsonify(
+                    {
+                        "error": "conversation_too_long",
+                        "human_readable": f"**Session Too Large**\n\nYour conversation is {len(chat_log):,} characters. Ariadne Clew has a maximum limit of {ABSOLUTE_MAX:,} characters due to Bedrock API token constraints.\n\n**Recommendation:** Analyze specific portions of your conversation instead of the entire history. Break at natural boundaries (topic shifts, task completions) for better insights.\n\n**Tip:** Focused sessions (2K-50K chars) produce clearer, more actionable recaps.",
+                        "status": "error",
+                        "details": {
+                            "chars_provided": len(chat_log),
+                            "absolute_max": ABSOLUTE_MAX,
+                            "recommended_max": RECOMMENDED_MAX,
+                        },
+                    }
+                ),
+                413,
+            )
 
         # Soft warning: May be slow but will attempt processing
         if len(chat_log) > RECOMMENDED_MAX:
-            logger.warning(f"⚠️ Large input: {len(chat_log):,} chars (recommended: {RECOMMENDED_MAX:,}). Processing may take longer.")
+            logger.warning(
+                f"⚠️ Large input: {len(chat_log):,} chars (recommended: {RECOMMENDED_MAX:,}). Processing may take longer."
+            )
             # Allow processing to continue - log warning for user awareness
 
         # Prepare command
@@ -96,42 +119,44 @@ def get_recap():
         # Windows CreateProcess has ~32K limit for entire command line
         cmd_estimate = len(AGENTCORE_PATH) + len(payload_json) + len(session_id) + 100
         if cmd_estimate > 30000:
-            logger.warning(f"⚠️ Command line length: {cmd_estimate} chars (Windows limit ~32K)")
+            logger.warning(
+                f"⚠️ Command line length: {cmd_estimate} chars (Windows limit ~32K)"
+            )
 
-        cmd = [
-            AGENTCORE_PATH,
-            'invoke',
-            payload_json,
-            '--session-id', session_id
-        ]
+        cmd = [AGENTCORE_PATH, "invoke", payload_json, "--session-id", session_id]
 
-        logger.info(f"Executing AgentCore command...")
+        logger.info("Executing AgentCore command...")
         logger.info(f"Payload size: {len(payload_json)} characters")
 
         # SIMPLE SOLUTION: Disable Rich formatting via environment variables
         env = os.environ.copy()
-        env['NO_COLOR'] = '1'           # Disable colors
-        env['TERM'] = 'dumb'            # Make rich think it's not a terminal
-        env['PYTHONIOENCODING'] = 'utf-8'  # Use UTF-8 encoding
+        env["NO_COLOR"] = "1"  # Disable colors
+        env["TERM"] = "dumb"  # Make rich think it's not a terminal
+        env["PYTHONIOENCODING"] = "utf-8"  # Use UTF-8 encoding
 
         # Execute with clean environment and UTF-8 encoding
         try:
             result = subprocess.run(
                 cmd,
                 capture_output=True,
-                encoding='utf-8',      # Explicitly use UTF-8, not Windows cp1252
-                errors='replace',      # Replace bad chars instead of crashing
+                encoding="utf-8",  # Explicitly use UTF-8, not Windows cp1252
+                errors="replace",  # Replace bad chars instead of crashing
                 timeout=60,
-                env=env
+                env=env,
             )
         except OSError as e:
             # Catch Windows command-line length errors
-            if e.winerror == 206 or 'filename' in str(e).lower():
-                return jsonify({
-                    "error": "session_too_large_for_windows",
-                    "human_readable": f"**Windows Command-Line Limit Exceeded**\n\nYour session ({len(chat_log):,} characters) is too large for Windows command-line processing.\n\n**Solution:** Break your conversation into smaller focused sessions (under 30K characters each) for better insights.",
-                    "status": "error"
-                }), 413
+            if e.winerror == 206 or "filename" in str(e).lower():
+                return (
+                    jsonify(
+                        {
+                            "error": "session_too_large_for_windows",
+                            "human_readable": f"**Windows Command-Line Limit Exceeded**\n\nYour session ({len(chat_log):,} characters) is too large for Windows command-line processing.\n\n**Solution:** Break your conversation into smaller focused sessions (under 30K characters each) for better insights.",
+                            "status": "error",
+                        }
+                    ),
+                    413,
+                )
             raise  # Re-raise if it's a different error
 
         logger.info(f"AgentCore return code: {result.returncode}")
@@ -140,13 +165,18 @@ def get_recap():
         if result.stdout is None:
             logger.error("AgentCore stdout is None - encoding error likely occurred")
             logger.error(f"Stderr: {result.stderr}")
-            return jsonify({
-                "error": "Failed to read AgentCore output",
-                "human_readable": "Unable to decode analysis results",
-                "debug_details": {
-                    "stderr": result.stderr[:500] if result.stderr else "None"
-                }
-            }), 500
+            return (
+                jsonify(
+                    {
+                        "error": "Failed to read AgentCore output",
+                        "human_readable": "Unable to decode analysis results",
+                        "debug_details": {
+                            "stderr": result.stderr[:500] if result.stderr else "None"
+                        },
+                    }
+                ),
+                500,
+            )
 
         logger.info(f"Stdout length: {len(result.stdout)} chars")
 
@@ -160,13 +190,15 @@ def get_recap():
             if response_marker in stdout:
                 json_start = stdout.index(response_marker) + len(response_marker)
                 remaining = stdout[json_start:].strip()
-                logger.info(f"Found Response: marker, extracted {len(remaining)} chars after it")
+                logger.info(
+                    f"Found Response: marker, extracted {len(remaining)} chars after it"
+                )
             else:
                 # No marker, look for first { after the box
                 logger.warning("No Response: marker found, searching for JSON start")
                 json_start = stdout.find('{"status"')
                 if json_start == -1:
-                    json_start = stdout.find('{')
+                    json_start = stdout.find("{")
                 if json_start == -1:
                     raise ValueError("No JSON found in output")
                 remaining = stdout[json_start:]
@@ -182,7 +214,7 @@ def get_recap():
                 if escape:
                     escape = False
                     continue
-                if char == '\\':
+                if char == "\\":
                     escape = True
                     continue
                 if char == '"' and not escape:
@@ -190,9 +222,9 @@ def get_recap():
                     continue
 
                 if not in_string:
-                    if char == '{':
+                    if char == "{":
                         brace_count += 1
-                    elif char == '}':
+                    elif char == "}":
                         brace_count -= 1
                         if brace_count == 0 and i > 0:  # Complete object
                             end_pos = i + 1
@@ -221,7 +253,7 @@ def get_recap():
                     escape = False
                     continue
 
-                if char == '\\':
+                if char == "\\":
                     fixed_json.append(char)
                     escape = True
                     continue
@@ -232,12 +264,12 @@ def get_recap():
                     continue
 
                 # Replace literal newlines/carriage returns in strings
-                if in_string and char in ['\n', '\r']:
-                    fixed_json.append('\\n')  # Escape it
+                if in_string and char in ["\n", "\r"]:
+                    fixed_json.append("\\n")  # Escape it
                 else:
                     fixed_json.append(char)
 
-            json_text = ''.join(fixed_json)
+            json_text = "".join(fixed_json)
             logger.info(f"Fixed JSON length: {len(json_text)} chars")
             logger.info(f"Fixed JSON starts with: {json_text[:100]}")
 
@@ -247,18 +279,20 @@ def get_recap():
             logger.info(f"Response keys: {list(agentcore_response.keys())}")
 
             # Extract result
-            if 'result' in agentcore_response:
-                agent_result = agentcore_response['result']
+            if "result" in agentcore_response:
+                agent_result = agentcore_response["result"]
             else:
                 agent_result = agentcore_response
 
             # Transform for frontend
             response = {
-                "human_readable": agent_result.get('human_readable', 'Analysis completed'),
-                "raw_json": agent_result.get('structured_data', {}),
+                "human_readable": agent_result.get(
+                    "human_readable", "Analysis completed"
+                ),
+                "raw_json": agent_result.get("structured_data", {}),
                 "session_id": session_id,
-                "agent_metadata": agent_result.get('agent_metadata', {}),
-                "status": "success"
+                "agent_metadata": agent_result.get("agent_metadata", {}),
+                "status": "success",
             }
 
             logger.info("✓ Successfully transformed response")
@@ -269,59 +303,80 @@ def get_recap():
             logger.error(f"Failed at position {e.pos}")
             logger.error(f"Stdout: {result.stdout[:1000]}")
 
-            return jsonify({
-                "error": "Failed to parse AgentCore response",
-                "human_readable": "Analysis completed but response format was unexpected",
-                "debug_details": {
-                    "parse_error": str(e),
-                    "stdout_preview": result.stdout[:500]
-                }
-            }), 500
+            return (
+                jsonify(
+                    {
+                        "error": "Failed to parse AgentCore response",
+                        "human_readable": "Analysis completed but response format was unexpected",
+                        "debug_details": {
+                            "parse_error": str(e),
+                            "stdout_preview": result.stdout[:500],
+                        },
+                    }
+                ),
+                500,
+            )
 
     except subprocess.TimeoutExpired:
         logger.error("AgentCore execution timed out")
-        return jsonify({
-            "error": "Analysis timeout",
-            "human_readable": "Analysis took too long, please try with shorter input"
-        }), 408
+        return (
+            jsonify(
+                {
+                    "error": "Analysis timeout",
+                    "human_readable": "Analysis took too long, please try with shorter input",
+                }
+            ),
+            408,
+        )
 
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
-        return jsonify({
-            "error": "Internal server error",
-            "human_readable": "An unexpected error occurred",
-            "debug_error": str(e)
-        }), 500
+        return (
+            jsonify(
+                {
+                    "error": "Internal server error",
+                    "human_readable": "An unexpected error occurred",
+                    "debug_error": str(e),
+                }
+            ),
+            500,
+        )
 
-@app.route('/v1/status', methods=['GET'])
+
+@app.route("/v1/status", methods=["GET"])
 def get_status():
     try:
-        result = subprocess.run([AGENTCORE_PATH, '--version'], capture_output=True, text=True, timeout=5)
+        result = subprocess.run(
+            [AGENTCORE_PATH, "--version"], capture_output=True, text=True, timeout=5
+        )
         agentcore_available = result.returncode == 0
 
-        return jsonify({
-            "bridge_server": "running",
-            "agentcore_available": agentcore_available,
-            "agentcore_version": result.stdout.strip() if agentcore_available else "unavailable",
-            "agentcore_path": AGENTCORE_PATH
-        })
+        return jsonify(
+            {
+                "bridge_server": "running",
+                "agentcore_available": agentcore_available,
+                "agentcore_version": (
+                    result.stdout.strip() if agentcore_available else "unavailable"
+                ),
+                "agentcore_path": AGENTCORE_PATH,
+            }
+        )
 
     except Exception as e:
-        return jsonify({
-            "bridge_server": "running",
-            "agentcore_available": False,
-            "agentcore_path": AGENTCORE_PATH,
-            "error": str(e)
-        })
+        return jsonify(
+            {
+                "bridge_server": "running",
+                "agentcore_available": False,
+                "agentcore_path": AGENTCORE_PATH,
+                "error": str(e),
+            }
+        )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     print("🧶 Ariadne Clew Bridge Server Starting...")
     print("📡 Frontend API: http://localhost:5000")
     print(f"🔗 AgentCore path: {AGENTCORE_PATH}")
     print("🔗 Connecting to AgentCore backend...")
 
-    app.run(
-        host='0.0.0.0',
-        port=5000,
-        debug=False  # Disabled to prevent restart loops
-    )
+    app.run(host="0.0.0.0", port=5000, debug=False)  # Disabled to prevent restart loops

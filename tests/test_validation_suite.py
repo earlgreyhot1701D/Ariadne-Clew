@@ -4,9 +4,8 @@ Unified validation suite for Ariadne Clew MVP.
 Covers schema contract, guardrails, persistence, metadata propagation, and agent flow.
 """
 
-import pytest
 from backend.schema import Recap
-from backend import filters, memory_handler, diffcheck, code_handler
+from backend import filters, memory_handler, diffcheck
 from backend.agent import RecapAgent
 
 

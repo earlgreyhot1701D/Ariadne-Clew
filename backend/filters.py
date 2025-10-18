@@ -2,18 +2,15 @@
 import re
 
 # Example deny-listed terms — extend as needed
-DENY_TERMS = [
-    "api_key",
-    "password",
-    "secret",
-    "rm -rf /",
-    "BEGIN RSA PRIVATE KEY"
-]
+DENY_TERMS = ["api_key", "password", "secret", "rm -rf /", "BEGIN RSA PRIVATE KEY"]
 MAX_CHARS = 100_000  # ~20k tokens max
 PII_PATTERNS = [
-    (re.compile(r"\b\d{3}-\d{2}-\d{4}\b"), "[SSN_REDACTED]"),     # SSN pattern
-    (re.compile(r"\b\d{16}\b"), "[CC_REDACTED]"),                 # naive credit card
-    (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"), "[EMAIL_REDACTED]"),  # email
+    (re.compile(r"\b\d{3}-\d{2}-\d{4}\b"), "[SSN_REDACTED]"),  # SSN pattern
+    (re.compile(r"\b\d{16}\b"), "[CC_REDACTED]"),  # naive credit card
+    (
+        re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"),
+        "[EMAIL_REDACTED]",
+    ),  # email
     (re.compile(r"\b\d{3}-\d{3}-\d{4}\b"), "[PHONE_REDACTED]"),  # phone number
 ]
 
@@ -21,7 +18,7 @@ PII_PATTERNS = [
 # Use word boundaries for simple words, but exact match for complex phrases
 _DENY_PATTERNS = []
 for term in DENY_TERMS:
-    if ' ' in term or any(char in term for char in ['-', '/', '\\', '.']):
+    if " " in term or any(char in term for char in ["-", "/", "\\", "."]):
         # For phrases with spaces or special chars, use exact string matching
         pattern = re.compile(re.escape(term), re.IGNORECASE)
     else:

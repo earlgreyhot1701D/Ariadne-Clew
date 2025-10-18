@@ -1,16 +1,25 @@
-
 // scripts/api_js.js
 // Flexible base URL + timeout + better errors (original filename).
 
-const DEFAULT_BASE = (typeof window !== 'undefined' && window.AC_API_BASE)
-  ? window.AC_API_BASE
-  : (location && location.origin ? location.origin.replace(/\/$/, '') : '');
+const DEFAULT_BASE =
+  typeof window !== 'undefined' && window.AC_API_BASE
+    ? window.AC_API_BASE
+    : location && location.origin
+      ? location.origin.replace(/\/$/, '')
+      : '';
 
 const API_BASE_URL = `${DEFAULT_BASE}`.replace(/\/$/, '');
 
-export async function getRecap(chatLog, sessionId = 'default', { timeoutMs = 30000 } = {}) {
+export async function getRecap(
+  chatLog,
+  sessionId = 'default',
+  { timeoutMs = 30000 } = {}
+) {
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(new Error('Request timeout')), timeoutMs);
+  const t = setTimeout(
+    () => controller.abort(new Error('Request timeout')),
+    timeoutMs
+  );
 
   let resp;
   try {
@@ -29,11 +38,14 @@ export async function getRecap(chatLog, sessionId = 'default', { timeoutMs = 300
     data = await resp.json();
   } catch {
     const text = await resp.text().catch(() => '');
-    throw new Error(`Bad JSON from server (status ${resp.status}): ${text.slice(0,200)}`);
-    }
+    throw new Error(
+      `Bad JSON from server (status ${resp.status}): ${text.slice(0, 200)}`
+    );
+  }
 
   if (!resp.ok) {
-    const errMsg = (data && (data.error || data.message)) || `HTTP ${resp.status}`;
+    const errMsg =
+      (data && (data.error || data.message)) || `HTTP ${resp.status}`;
     throw new Error(errMsg);
   }
   return data;

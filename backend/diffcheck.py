@@ -52,4 +52,3 @@ def diff_code_blocks(blocks: List[Dict[str, Any]]) -> Dict[str, Any]:
         aha_moments=[],
         quality_flags=quality_flags,
     ).model_dump()
-

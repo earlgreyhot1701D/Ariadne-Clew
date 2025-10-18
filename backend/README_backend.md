@@ -1,14 +1,15 @@
-
 # Ariadne Backend
 
 ## API Endpoint
 
 ### Recap Endpoint
+
 ```
 GET /recap?session_id=abc123
 ```
 
 ### Example cURL
+
 ```bash
 curl -X GET "http://localhost:5000/recap?session_id=example123"
 ```

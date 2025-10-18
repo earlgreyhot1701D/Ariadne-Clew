@@ -4,7 +4,7 @@
 :root {
   --background: radial-gradient(circle at center, #fdfdfd 0%, #e8ecf5 100%);
   --text-color: #212529;
-  --accent: #d4a017;        /* gold thread */
+  --accent: #d4a017; /* gold thread */
   --accent-glow: rgba(212, 160, 23, 0.6);
   --panel-bg: rgba(255, 255, 255, 0.8);
   --panel-border: rgba(212, 160, 23, 0.4);
@@ -14,7 +14,7 @@
 [data-theme='dark'] {
   --background: radial-gradient(circle at center, #0d1117 0%, #1a1f2b 100%);
   --text-color: #e6e7ea;
-  --accent: #8f6aff;        /* violet thread */
+  --accent: #8f6aff; /* violet thread */
   --accent-glow: rgba(143, 106, 255, 0.6);
   --panel-bg: rgba(20, 24, 33, 0.9);
   --panel-border: rgba(143, 106, 255, 0.4);
@@ -34,7 +34,7 @@ body {
 
 /* Subtle labyrinth pattern overlay */
 body::before {
-  content: "";
+  content: '';
   position: fixed;
   inset: 0;
   background: repeating-radial-gradient(
@@ -50,9 +50,15 @@ body::before {
 }
 
 @keyframes labyrinthPulse {
-  0% { opacity: 0.25; }
-  50% { opacity: 0.45; }
-  100% { opacity: 0.25; }
+  0% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0.25;
+  }
 }
 
 /* Panels */
@@ -83,7 +89,7 @@ button {
 }
 
 button::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, var(--accent), transparent 60%);

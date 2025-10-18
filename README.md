@@ -1,11 +1,12 @@
 # Ariadne Clew (AC)
+
 **Reasoning Preservation for LLM-Native Builders**
 
 🧶 **Don't commit without context.**
 
-You build fast. You iterate messy. You lose track of *why* you made choices.
+You build fast. You iterate messy. You lose track of _why_ you made choices.
 
-Ariadne Clew is an **AWS AgentCore-powered reasoning agent** that turns your chaotic chat transcripts into structured clarity, preserving the *aha moments*, *design tradeoffs*, and *validated code* that disappear when you move too fast for version control.
+Ariadne Clew is an **AWS AgentCore-powered reasoning agent** that turns your chaotic chat transcripts into structured clarity, preserving the _aha moments_, _design tradeoffs_, and _validated code_ that disappear when you move too fast for version control.
 
 Built by an indie operator, for indie operators who know the pain of losing context in late-night builds.
 
@@ -13,11 +14,11 @@ Built by an indie operator, for indie operators who know the pain of losing cont
 
 ## 🧶 Why Ariadne Clew?
 
-In Greek mythology, Ariadne gave Theseus a *clew* - a ball of thread - so he could navigate the labyrinth and make it out alive.
+In Greek mythology, Ariadne gave Theseus a _clew_ - a ball of thread - so he could navigate the labyrinth and make it out alive.
 
 Ariadne Clew plays the same role for builders today: it captures threads of thought, decisions, and insights so you don't lose your way in the maze of iteration.
 
-Where traditional version control tracks *what* changed, Ariadne Clew preserves the *why*, guiding you back to clarity when the path gets tangled.
+Where traditional version control tracks _what_ changed, Ariadne Clew preserves the _why_, guiding you back to clarity when the path gets tangled.
 
 ### 🧩 The Real Problem
 
@@ -32,7 +33,7 @@ Builders are shipping faster than ever, but the **design decisions** and **reaso
 - Code snippets multiply across tools with no clear "final version"
 - Teammates (or future you) can't trace why anything was built
 
-*This isn't a version control problem. This is a reasoning preservation problem.*
+_This isn't a version control problem. This is a reasoning preservation problem._
 
 ---
 
@@ -41,6 +42,7 @@ Builders are shipping faster than ever, but the **design decisions** and **reaso
 Ariadne Clew acts as your **autonomous reasoning agent** - silently watching your messy builder conversations and extracting structured clarity.
 
 It ingests raw session logs and produces a **structured recap** with:
+
 - 💡 **Aha moments** - preserved discoveries and clarifications
 - 🧩 **MVP changes** - tradeoffs, pivots, scope edits
 - 🌀 **Scope creep** - hallucinated ambition, caught in the act
@@ -51,11 +53,12 @@ It ingests raw session logs and produces a **structured recap** with:
 **For solo devs and indie builders**, Ariadne Clew is like a ghost cofounder - silently watching and capturing your product reasoning so you can focus on building, not backtracking. Every design choice, aha moment, or potential pitfall is preserved to keep your momentum and confidence high.
 
 ### How It Works:
+
 1. **Upload your chat transcript** (.txt, .json from any LLM)
 2. **Agent classifies & validates** using AWS AgentCore + Bedrock
 3. **Receive structured recap** - human-readable summary you can actually use
 
-*Model-agnostic. Works with ChatGPT, Claude, DeepSeek, whatever you use.*
+_Model-agnostic. Works with ChatGPT, Claude, DeepSeek, whatever you use._
 
 ---
 
@@ -83,6 +86,7 @@ def invoke(payload):
 ```
 
 **Core Capabilities:**
+
 - **Autonomous classification**: Plain text vs code, no human input
 - **Reasoning extraction**: Identifies aha moments, design decisions, scope changes
 - **Conflict resolution**: Reconciles multiple "final" versions
@@ -96,6 +100,7 @@ def invoke(payload):
 ### 🔍 **Code Validation & Future Enhancement**
 
 **MVP Implementation (✅ Production-Ready):**
+
 - **AST syntax validation**: Python code parsed for correctness
 - **Metadata capture**: Language, context, user-marked "final" status
 - **Version tracking**: Multiple iterations reconciled
@@ -116,6 +121,7 @@ def validate_snippet(code: str) -> bool:
 
 **Post-MVP Enhancement (🔮 Architected):**
 AgentCore Code Interpreter integration ready:
+
 - Sandbox execution in isolated AWS environments
 - Runtime validation metadata (works/broken/partial)
 - Multi-language support (Python, JS, Bash, more)
@@ -130,6 +136,7 @@ Focus on autonomous reasoning extraction (the hard problem) while architecting f
 ### 🧶 **Session Persistence & Memory Architecture**
 
 **MVP Implementation (✅ Production-Ready):**
+
 - **Local file-based storage**: Simple, fast, debuggable
 - **Session organization**: `.cache/` directory by session_id
 - **History and replay**: All recaps persisted for reference
@@ -150,6 +157,7 @@ def store_recap(session_id: str, recap: dict):
 
 **Post-MVP Enhancement (🔮 Architected):**
 AgentCore Memory API integration ready:
+
 - **Cross-session semantic search**: "Show me all auth decisions"
 - **Context injection**: "Last session, you chose approach X because..."
 - **Distributed storage**: DynamoDB-backed, multi-user safe
@@ -164,6 +172,7 @@ Local files enable rapid development and debugging. Architecture supports drop-i
 ### 🤯 **Autonomous Decision-Making**
 
 **Core Agentic Capabilities:**
+
 - **Classifies** plain text vs code without human input
 - **Extracts** structured insights from unstructured conversations
 - **Resolves conflicts** when multiple "final" versions exist
@@ -182,18 +191,21 @@ Local files enable rapid development and debugging. Architecture supports drop-i
 Ariadne Clew is built for indie operators, casual architects, and advanced civilian power users. These are people who lose context when iterating fast - not those who live inside version control.
 
 ### 🏠 **Indie Operators**
-*Pain*: Moving too fast for version control, not disciplined enough for Notion
-*Value*: AC gives you a recap of "what just happened" without adding overhead
+
+_Pain_: Moving too fast for version control, not disciplined enough for Notion
+_Value_: AC gives you a recap of "what just happened" without adding overhead
 
 ### 🚀 **Hackathon Builders**
-*Pain*: Chaotic sprinting, dozens of snippets, judges who'll never read your whole repo
-*Value*: Structured recap = credibility and clarity for demo day
+
+_Pain_: Chaotic sprinting, dozens of snippets, judges who'll never read your whole repo
+_Value_: Structured recap = credibility and clarity for demo day
 
 ### 🧠 **Advanced Civilian Power Users**
-*Pain*: Daily LLM users who lose track of *why they made choices*
-*Value*: AC is your "ghost cofounder" - organizes messy chats into reusable artifacts
 
-*All these big tools are fancy, but are they really needed? Can't someone without formal AI training take a different path?*
+_Pain_: Daily LLM users who lose track of _why they made choices_
+_Value_: AC is your "ghost cofounder" - organizes messy chats into reusable artifacts
+
+_All these big tools are fancy, but are they really needed? Can't someone without formal AI training take a different path?_
 
 **I believe so. This is that path.**
 
@@ -202,18 +214,21 @@ Ariadne Clew is built for indie operators, casual architects, and advanced civil
 ## 💡 Why This Matters: Measurable Impact
 
 ### **Problem Scale**
+
 - 73% of developers use AI coding tools daily (Stack Overflow 2024)
 - Average session: 50+ messages, 12+ code iterations
 - **0% of sessions preserve structured reasoning for reuse**
 
 ### **Real-World Value**
+
 - **Time Recovery**: Eliminate "what was I thinking?" moments
-- **Knowledge Transfer**: Teammates understand *why*, not just *what*
+- **Knowledge Transfer**: Teammates understand _why_, not just _what_
 - **Decision Audit**: Trace any choice back to its reasoning thread
 - **Context Continuity**: Pick up where you left off, weeks later
 
 ### **Competitive Differentiation**
-Existing tools remember *conversations*. AC preserves *reasoning*.
+
+Existing tools remember _conversations_. AC preserves _reasoning_.
 That's the difference between a chat log and a decision artifact.
 
 ---
@@ -293,6 +308,7 @@ That's the difference between a chat log and a decision artifact.
 ### Core Components:
 
 **MVP (Built & Working):**
+
 - **AgentCore Runtime**: BedrockAgentCoreApp + Strands for agent orchestration
 - **Bedrock Claude Sonnet 4**: Autonomous reasoning extraction
 - **Flask Bridge Server**: Connects frontend to AgentCore CLI
@@ -301,28 +317,33 @@ That's the difference between a chat log and a decision artifact.
 - **Pydantic Schema**: Strict validation with `extra="forbid"`
 
 **Post-MVP (Architected & Ready):**
+
 - **AgentCore Code Interpreter**: Sandbox execution in AWS
 - **AgentCore Memory API**: Cross-session semantic search
 - **S3 + Lambda**: Serverless scalability
 - **API Gateway**: Production-ready REST endpoints
 - **DynamoDB**: Distributed session storage
 
-*Built for production from day one. No shortcuts, no technical debt.*
+_Built for production from day one. No shortcuts, no technical debt._
+
 - Resource limits for production deployment
 
 ### **Model Selection Process**
+
 Evaluated Claude, Titan, and Nova on transcript classification:
+
 - **Claude Sonnet 4**: Best reasoning extraction, consistent JSON output
 - **Cost optimization**: Predictable token usage, hackathon-safe (~$0.003 per recap)
 - **Reliability**: Handles edge cases without hallucination
 
-*Every decision documented. Every guardrail tested.*
+_Every decision documented. Every guardrail tested._
 
 ---
 
 ## 📊 MVP Demo Flow: End-to-End Agentic Workflow
 
 ### **1. Upload Transcript**
+
 ```bash
 # Paste any LLM export in the browser
 # - ChatGPT conversation exports
@@ -332,6 +353,7 @@ Evaluated Claude, Titan, and Nova on transcript classification:
 ```
 
 ### **2. Agent Processing (Autonomous)**
+
 The agent operates completely autonomously:
 
 1. **Input Validation**: Filters scrub PII, check deny-list, enforce size limits
@@ -346,35 +368,43 @@ The agent operates completely autonomously:
 **Total time: 3-5 seconds. Zero human intervention.**
 
 ### **3. Human-Readable Recap**
+
 **MVP Output**: Clean, scannable recap with action items
 
-```markdown
+````markdown
 ## Session Recap: ac-session-042
 
 ### 🎯 Summary
+
 Built iterative Fibonacci implementation, chose performance over elegance.
 Realized recursion would timeout on large inputs. Final solution is O(n).
 
 ### 💡 Key Insights
+
 - Realized recursion would timeout on large inputs
 - Performance matters more than code elegance for this use case
 - O(n) iterative approach beats O(2^n) recursive
 
 ### 🧩 Design Decisions
+
 - Chose iterative over recursive for performance
 - Prioritized speed over code brevity
 - Added memoization consideration for future
 
 ### 📝 MVP Changes
+
 - Switched from recursive to iterative approach mid-session
 - Performance became primary decision factor
 
 ### ⭐ Post-MVP Ideas
+
 - Add memoization layer for caching
 - Consider generator pattern for memory efficiency
 
 ### 📊 Code Snippets
+
 **Snippet 1** (Python, ✅ Valid Syntax)
+
 ```python
 def fibonacci(n):
     if n <= 1:
@@ -384,11 +414,15 @@ def fibonacci(n):
         a, b = b, a + b
     return b
 ```
+````
+
 Context: Final iterative solution, O(n) time complexity
 
 ### ⚠️ Quality Flags
+
 - Clear performance reasoning documented
 - Good progression from recursive to iterative
+
 ```
 
 **Raw JSON Available**: Via split panel view for programmatic access
@@ -477,16 +511,19 @@ Recap stored in `.cache/` directory for:
 
 **✅ Good session size (15K chars):**
 ```
+
 User: I need to build authentication for my app
 [... detailed discussion of OAuth vs JWT ...]
 [... code iterations and testing ...]
 [... final implementation decided ...]
 
 Result: Clear "why JWT" tradeoff, final code snippet, security notes
+
 ```
 
 **❌ Too large (150K chars):**
 ```
+
 User: Let's build everything
 [... auth system ...]
 [... database design ...]
@@ -495,6 +532,7 @@ User: Let's build everything
 [... 6 hours later ...]
 
 Result: Overwhelming, unfocused, hard to extract clear decisions
+
 ```
 
 **Better approach:** Submit 4 separate focused sessions:
@@ -606,27 +644,29 @@ My audience isn't enterprise procurement teams. It's:
 
 ### **File Structure**
 ```
+
 ariadne-clew/
 ├── backend/
-│   ├── agent.py              # AgentCore Runtime integration
-│   ├── bridge_server.py      # Flask API bridge
-│   ├── filters.py            # Input safety layer
-│   ├── code_handler.py       # AST validation
-│   ├── memory_handler.py     # Local file storage
-│   ├── schema.py             # Pydantic models
-│   ├── recap_formatter.py    # Output generation
-│   └── diffcheck.py          # Version reconciliation
+│ ├── agent.py # AgentCore Runtime integration
+│ ├── bridge_server.py # Flask API bridge
+│ ├── filters.py # Input safety layer
+│ ├── code_handler.py # AST validation
+│ ├── memory_handler.py # Local file storage
+│ ├── schema.py # Pydantic models
+│ ├── recap_formatter.py # Output generation
+│ └── diffcheck.py # Version reconciliation
 ├── prompts/
-│   └── classifier_prompt.md  # Reasoning extraction prompt
+│ └── classifier_prompt.md # Reasoning extraction prompt
 ├── public/
-│   ├── index.html            # Minimal pastebox UI
-│   ├── scripts/              # Frontend JavaScript
-│   └── styles/               # Clean CSS layout
-├── tests/                    # 56 comprehensive tests
+│ ├── index.html # Minimal pastebox UI
+│ ├── scripts/ # Frontend JavaScript
+│ └── styles/ # Clean CSS layout
+├── tests/ # 56 comprehensive tests
 ├── docs/
-│   ├── ARCHITECTURE.md       # Technical deep dive
-│   └── TROUBLESHOOTING.md    # Setup & debugging guide
-└── README.md                 # This file
+│ ├── ARCHITECTURE.md # Technical deep dive
+│ └── TROUBLESHOOTING.md # Setup & debugging guide
+└── README.md # This file
+
 ```
 
 ### **Key Features**
@@ -865,3 +905,4 @@ For inquiries, licensing, or commercial use, contact: lsjcordero@gmail.com
 
 **Note:** This repository was briefly public under MIT license on September 14–15, 2025.
 As of September 16, 2025, all commits are proprietary.
+```

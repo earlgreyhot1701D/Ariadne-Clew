@@ -8,12 +8,14 @@ It exists to prevent scope creep and keep development focused on delivering a wo
 ## ✅ MVP Definition
 
 **Core Pipeline**
+
 - Input → pastebox UI (`index.html`) → filters → classifier → code_handler (AST) → diff → recap_formatter → memory
 - Output = dual recap (JSON + human-readable) rendered in-browser (`#humanOutput` + `#jsonOutput`)
 - UI = minimal but polished pastebox: labeled input, single submit button,
-and dual output panels (human-readable + raw JSON).
+  and dual output panels (human-readable + raw JSON).
 
 **Guardrails**
+
 - Replace `exec()` with AST parse
 - Input length guard (100,000 chars)
 - Deny terms: `password`, `api_key`, `rm -rf /`, `BEGIN RSA PRIVATE KEY`
@@ -21,6 +23,7 @@ and dual output panels (human-readable + raw JSON).
 - Schema enforcement with `extra="forbid"`
 
 **Docs & Logging**
+
 - JSON logging with `request_id` (no raw transcripts)
 - Minimal unit tests (smoke coverage only) included in MVP
 - Full coverage test suite explicitly post-MVP
@@ -29,6 +32,7 @@ and dual output panels (human-readable + raw JSON).
 - docs/model_eval.md with Claude vs Nova quick table
 
 **AWS Integration (MVP)**
+
 - **AgentCore Runtime**: BedrockAgentCoreApp + Strands agents for orchestration
 - **Bedrock Model**: Claude Sonnet 4 for reasoning extraction
 - **Code Validation**: AST syntax parsing (Python-specific)
@@ -37,6 +41,7 @@ and dual output panels (human-readable + raw JSON).
 - **Demo Architecture**: Flask bridge server → `agentcore invoke` → Frontend display
 
 **Production Path (Post-MVP)**
+
 - S3 upload trigger → Lambda function → AgentCore SDK → API Gateway
 - AgentCore Code Interpreter for sandbox execution
 - AgentCore Memory API for cross-session context
@@ -87,12 +92,14 @@ These items are deferred until after the hackathon. They should **not** be built
 ## 🎯 MVP Scope Discipline
 
 **What Makes This MVP:**
+
 - **Working**: Full pipeline from chat transcript to structured recap
 - **Safe**: Comprehensive guardrails and validation
 - **Autonomous**: Agent operates without human oversight
 - **Honest**: Clear about what's implemented vs architected
 
 **What Makes This Production-Ready:**
+
 - Clean architecture supporting future tool integration
 - Comprehensive test coverage (56 tests)
 - Production error handling and logging
@@ -103,4 +110,4 @@ MVP focuses on the hard problem (autonomous reasoning extraction) while architec
 
 ---
 
-*This file is the single source of truth for MVP scope. Anything outside of it is post-hackathon work.*
+_This file is the single source of truth for MVP scope. Anything outside of it is post-hackathon work._

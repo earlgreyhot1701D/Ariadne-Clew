@@ -1,4 +1,3 @@
-import pytest
 from api_recap import create_recap_from_log
 from backend.schema import Recap
 
@@ -8,8 +7,16 @@ def test_create_recap_pipeline_with_mocked_bedrock(monkeypatch):
     monkeypatch.setattr(
         "api_recap.classify_with_bedrock",
         lambda prompt: [
-            {"type": "code", "content": "print('ok')", "validation": {"status": "valid"}},
-            {"type": "code", "content": "print('bad')", "validation": {"status": "invalid"}},
+            {
+                "type": "code",
+                "content": "print('ok')",
+                "validation": {"status": "valid"},
+            },
+            {
+                "type": "code",
+                "content": "print('bad')",
+                "validation": {"status": "invalid"},
+            },
         ],
     )
 

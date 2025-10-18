@@ -24,6 +24,7 @@ Before reporting issues, verify these essentials:
 ### Issue #1: AgentCore Module Not Found
 
 **Error Message:**
+
 ```
 ModuleNotFoundError: No module named 'bedrock_agentcore'
 ```
@@ -31,6 +32,7 @@ ModuleNotFoundError: No module named 'bedrock_agentcore'
 **Cause:** AgentCore SDK not installed or not in Python path
 
 **Solution:**
+
 ```bash
 # Install AgentCore SDK
 pip install bedrock-agentcore strands-agents --break-system-packages
@@ -43,6 +45,7 @@ python -c "import bedrock_agentcore; print(bedrock_agentcore.__file__)"
 ```
 
 **Alternative (Virtual Environment):**
+
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
@@ -55,6 +58,7 @@ pip install bedrock-agentcore strands-agents
 ### Issue #2: AWS Credentials Not Configured
 
 **Error Message:**
+
 ```
 botocore.exceptions.NoCredentialsError: Unable to locate credentials
 ```
@@ -64,11 +68,12 @@ botocore.exceptions.NoCredentialsError: Unable to locate credentials
 **Solution:**
 
 **Option 1: AWS CLI Configuration (Recommended)**
+
 ```bash
 aws configure
 # Enter your:
 # - AWS Access Key ID
-# - AWS Secret Access Key  
+# - AWS Secret Access Key
 # - Default region: us-east-1
 # - Output format: json
 
@@ -77,6 +82,7 @@ aws sts get-caller-identity
 ```
 
 **Option 2: Environment Variables**
+
 ```bash
 export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
@@ -89,6 +95,7 @@ set AWS_DEFAULT_REGION=us-east-1
 ```
 
 **Option 3: AWS Profile**
+
 ```bash
 # If you have multiple AWS profiles
 export AWS_PROFILE=your-profile-name
@@ -103,8 +110,9 @@ export AWS_PROFILE=hackathon
 ### Issue #3: Bedrock Access Denied
 
 **Error Message:**
+
 ```
-An error occurred (AccessDeniedException) when calling the InvokeModel operation: 
+An error occurred (AccessDeniedException) when calling the InvokeModel operation:
 You don't have access to the model with the specified model ID.
 ```
 
@@ -113,6 +121,7 @@ You don't have access to the model with the specified model ID.
 **Solution:**
 
 **Step 1: Enable Bedrock Model Access**
+
 1. Go to AWS Console → Bedrock → Model access
 2. Click "Manage model access"
 3. Select "Claude" models (specifically Claude Sonnet 3.5)
@@ -120,6 +129,7 @@ You don't have access to the model with the specified model ID.
 5. Wait 2-5 minutes for approval
 
 **Step 2: Verify Region**
+
 ```bash
 # Bedrock is available in specific regions
 # Recommended: us-east-1
@@ -134,6 +144,7 @@ aws bedrock list-foundation-models --region us-east-1
 **Step 3: Check IAM Permissions**
 
 Your IAM user/role needs these permissions:
+
 ```json
 {
   "Version": "2012-10-17",
@@ -155,6 +166,7 @@ Your IAM user/role needs these permissions:
 ### Issue #4: AgentCore Configuration Issues
 
 **Error Message:**
+
 ```
 Error: No entrypoint configured
 # or
@@ -164,6 +176,7 @@ Error: Could not find .bedrock_agentcore.yaml
 **Cause:** AgentCore not properly configured for the project
 
 **Solution:**
+
 ```bash
 # Configure AgentCore for this project
 cd /path/to/Ariadne-Clew
@@ -179,6 +192,7 @@ agentcore invoke '{"prompt":"User: test\nAssistant: response"}' --session-id tes
 ```
 
 **If Configuration Keeps Resetting:**
+
 ```bash
 # Remove cached config
 rm .bedrock_agentcore.yaml
@@ -195,6 +209,7 @@ agentcore launch --auto-update-on-conflict
 ### Issue #5: Bridge Server Won't Start
 
 **Error Message:**
+
 ```
 OSError: [Errno 48] Address already in use
 # or
@@ -206,6 +221,7 @@ ModuleNotFoundError: No module named 'flask'
 **Solution:**
 
 **If Port is Busy:**
+
 ```bash
 # Find what's using port 5000
 lsof -i :5000  # On Mac/Linux
@@ -220,6 +236,7 @@ python bridge_server.py
 ```
 
 **If Flask Missing:**
+
 ```bash
 pip install flask flask-cors
 
@@ -232,6 +249,7 @@ python -c "import flask; print(flask.__version__)"
 ### Issue #6: Frontend Not Loading
 
 **Error Message:**
+
 ```
 This site can't be reached
 # or
@@ -243,6 +261,7 @@ Failed to fetch
 **Solution:**
 
 **Step 1: Verify Bridge Server**
+
 ```bash
 # Start the bridge server
 python bridge_server.py
@@ -257,6 +276,7 @@ curl http://localhost:5000/health
 ```
 
 **Step 2: Check Browser Console**
+
 1. Open browser DevTools (F12)
 2. Go to Console tab
 3. Look for errors (red text)
@@ -266,6 +286,7 @@ curl http://localhost:5000/health
    - Network errors → Firewall blocking
 
 **Step 3: Try Different URL**
+
 ```
 Try each of these:
 ✓ http://localhost:5000
@@ -274,9 +295,10 @@ Try each of these:
 ```
 
 **Step 4: Clear Browser Cache**
+
 ```
 Chrome/Edge: Ctrl+Shift+Delete → Clear cache
-Firefox: Ctrl+Shift+Delete → Clear cache  
+Firefox: Ctrl+Shift+Delete → Clear cache
 Safari: Cmd+Option+E → Empty caches
 ```
 
@@ -285,6 +307,7 @@ Safari: Cmd+Option+E → Empty caches
 ### Issue #7: Tests Failing
 
 **Error Message:**
+
 ```
 pytest: command not found
 # or
@@ -298,6 +321,7 @@ Tests failing with AWS credential errors
 **Solution:**
 
 **Install Test Dependencies:**
+
 ```bash
 pip install pytest pytest-asyncio pytest-mock
 
@@ -306,9 +330,10 @@ pytest tests/ -v
 ```
 
 **Tests Requiring AWS (Optional):**
-Most tests use mocked Bedrock calls and don't need real AWS credentials. 
+Most tests use mocked Bedrock calls and don't need real AWS credentials.
 
 **Run Only Tests That Don't Need AWS:**
+
 ```bash
 # These tests work without AWS credentials
 pytest tests/test_schema.py -v
@@ -318,6 +343,7 @@ pytest tests/test_code_handler.py -v
 ```
 
 **Run Full Suite (Requires AWS):**
+
 ```bash
 # Configure AWS credentials first
 export AWS_PROFILE=your-profile
@@ -334,6 +360,7 @@ pytest tests/ --cov=backend --cov-report=html
 ### Issue #8: Slow Processing / Timeouts
 
 **Error Message:**
+
 ```
 TimeoutError: Request took too long
 # or
@@ -345,6 +372,7 @@ Processing took longer than expected
 **Solution:**
 
 **Check Transcript Size:**
+
 ```bash
 # Transcripts over 50K characters will be rejected
 echo "Transcript length: $(wc -c < your_transcript.txt)"
@@ -355,6 +383,7 @@ tail -n 1000 your_transcript.txt > chunk2.txt
 ```
 
 **Increase Timeout:**
+
 ```python
 # In bridge_server.py, line ~78
 result = subprocess.run(
@@ -366,6 +395,7 @@ result = subprocess.run(
 ```
 
 **Check Bedrock Latency:**
+
 ```bash
 # Test direct Bedrock call
 time aws bedrock-runtime invoke-model \
@@ -377,6 +407,7 @@ time aws bedrock-runtime invoke-model \
 ```
 
 **If Consistently Slow:**
+
 - Check if you're in a supported region (us-east-1 is fastest)
 - Verify network connectivity to AWS
 - Check Bedrock service health: https://status.aws.amazon.com
@@ -386,6 +417,7 @@ time aws bedrock-runtime invoke-model \
 ### Issue #9: Invalid JSON Output
 
 **Error Message:**
+
 ```
 json.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 # or
@@ -397,6 +429,7 @@ ValidationError: extra fields not permitted
 **Solution:**
 
 **Check AgentCore Logs:**
+
 ```bash
 # Run with verbose logging
 agentcore invoke '{"prompt":"test"}' --session-id test --verbose
@@ -406,6 +439,7 @@ agentcore invoke '{"prompt":"test"}' --session-id test --verbose
 ```
 
 **Test Prompt Directly:**
+
 ```bash
 # Test your reasoning extraction prompt
 cat prompts/classifier_prompt.md
@@ -415,6 +449,7 @@ cat prompts/classifier_prompt.md
 ```
 
 **If Validation Fails:**
+
 ```python
 # The schema is strict (extra="forbid")
 # Check backend/schema.py for required fields
@@ -426,6 +461,7 @@ cat prompts/classifier_prompt.md
 ```
 
 **Temporary Workaround:**
+
 ```python
 # In backend/agent.py, add more lenient parsing:
 try:
@@ -513,7 +549,7 @@ python -c "from backend.filters import scrub_pii; print(scrub_pii('email: test@e
 # Test schema
 python -c "from backend.schema import Recap; print(Recap(session_id='test', summary='test'))"
 
-# Test code handler  
+# Test code handler
 python -c "from backend.code_handler import validate_snippet; print(validate_snippet('print(1)'))"
 ```
 

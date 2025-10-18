@@ -4,18 +4,12 @@
   "aha_moments": [
     "Realized MVP scope was bloated by CI/CD pipeline discussion."
   ],
-  "mvp_changes": [
-    "Dropped CI/CD setup from MVP."
-  ],
+  "mvp_changes": ["Dropped CI/CD setup from MVP."],
   "scope_creep": [
     "Debated metrics dashboard before core classifier was stable."
   ],
-  "readme_notes": [
-    "Define session log format expectations."
-  ],
-  "post_mvp_ideas": [
-    "Add visual prompt editor for tweaking classifiers."
-  ],
+  "readme_notes": ["Define session log format expectations."],
+  "post_mvp_ideas": ["Add visual prompt editor for tweaking classifiers."],
   "summary": "This session clarified MVP boundaries, removed CI/CD from scope, and emphasized logging clarity.",
   "quality_flags": [
     "\u2705 Scoped appropriately",

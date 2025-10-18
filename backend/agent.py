@@ -35,18 +35,20 @@ except Exception:
 try:
     from backend.recap_formatter import format_recap
 except Exception:
+
     def format_recap(model):  # graceful fallback
         try:
             return model.model_dump()  # type: ignore[attr-defined]
         except Exception:
             return {}
 
+
 # Configure logging to stdout for CloudWatch
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     stream=sys.stdout,
-    force=True
+    force=True,
 )
 logger = logging.getLogger(__name__)
 
@@ -54,15 +56,18 @@ logger = logging.getLogger(__name__)
 app = BedrockAgentCoreApp()
 agent = Agent()
 
+
 def debug_print(msg: str):
     """Print with flush for immediate CloudWatch visibility"""
     print(msg, flush=True)
+
 
 # -----------------------------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------------------------
 
 _JSON_FENCE = re.compile(r"```json\s*(.+?)\s*```", re.DOTALL | re.IGNORECASE)
+
 
 def _extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
     """Extract dict from either a ```json fenced block or raw JSON string."""
@@ -76,14 +81,20 @@ def _extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
     except Exception:
         return None
 
+
 def _looks_like_agent_wrapper(d: Dict[str, Any]) -> bool:
     """Detect a Strands-style wrapper: {'role':'assistant','content':[{'text': '...'}]}"""
     if not isinstance(d, dict):
         return False
     if "role" in d and "content" in d and isinstance(d["content"], list):
-        if d["content"] and isinstance(d["content"][0], dict) and "text" in d["content"][0]:
+        if (
+            d["content"]
+            and isinstance(d["content"][0], dict)
+            and "text" in d["content"][0]
+        ):
             return True
     return False
+
 
 def _parse_agent_result(result: Any) -> Dict[str, Any]:
     """
@@ -138,6 +149,7 @@ def _parse_agent_result(result: Any) -> Dict[str, Any]:
     # Fallback
     return {}
 
+
 def _normalize_for_schema(analysis: Dict[str, Any]) -> Dict[str, Any]:
     """
     Build a payload compatible with Recap.model_validate:
@@ -158,7 +170,12 @@ def _normalize_for_schema(analysis: Dict[str, Any]) -> Dict[str, Any]:
             "context": code_context,
         }
     else:
-        final_snip = {"language": "text", "content": "", "user_marked_final": False, "context": ""}
+        final_snip = {
+            "language": "text",
+            "content": "",
+            "user_marked_final": False,
+            "context": "",
+        }
 
     return {
         "session_id": analysis.get("session_id"),
@@ -168,11 +185,13 @@ def _normalize_for_schema(analysis: Dict[str, Any]) -> Dict[str, Any]:
         "aha_moments": analysis.get("aha_moments", []),
     }
 
+
 def _to_html_list(items: List[str]) -> str:
     if not items:
         return ""
     safe = "".join(f"<li>{html.escape(str(i))}</li>" for i in items)
     return f"<ul>{safe}</ul>"
+
 
 def _generate_human_summary_html(analysis: Dict[str, Any]) -> str:
     """
@@ -219,17 +238,23 @@ def _generate_human_summary_html(analysis: Dict[str, Any]) -> str:
             # Build snippet display with actual code preview
             if code_content:
                 # Show first 150 chars of code
-                preview = code_content[:150] + ("..." if len(code_content) > 150 else "")
+                preview = code_content[:150] + (
+                    "..." if len(code_content) > 150 else ""
+                )
                 snippet_text = f"<strong>[{html.escape(lang)}]</strong> <code>{html.escape(preview)}</code>"
                 if code_context:
                     snippet_text += f" <em>({html.escape(code_context)})</em>"
                 snippet_items.append(snippet_text)
             elif code_context:
                 # No code content but has context - at least show that
-                snippet_items.append(f"<strong>[{html.escape(lang)}]</strong> {html.escape(code_context)}")
+                snippet_items.append(
+                    f"<strong>[{html.escape(lang)}]</strong> {html.escape(code_context)}"
+                )
 
         if snippet_items:
-            parts.append("<ul>" + "".join(f"<li>{item}</li>" for item in snippet_items) + "</ul>")
+            parts.append(
+                "<ul>" + "".join(f"<li>{item}</li>" for item in snippet_items) + "</ul>"
+            )
 
     if post:
         parts.append("<h3>Post-MVP Ideas</h3>")
@@ -238,9 +263,11 @@ def _generate_human_summary_html(analysis: Dict[str, Any]) -> str:
     html_text = "".join(parts).strip()
     return html_text or "<p>No structured insights were returned by the agent.</p>"
 
+
 # -----------------------------------------------------------------------------
 # Core class
 # -----------------------------------------------------------------------------
+
 
 class AriadneClew:
     """
@@ -257,11 +284,11 @@ class AriadneClew:
         """
         Build prompt → call Strands → parse → human_readable (HTML) + structured
         """
-        debug_print("="*80)
+        debug_print("=" * 80)
         debug_print("🚀 STARTING TRANSCRIPT PROCESSING")
         debug_print(f"Session ID: {self.session_id}")
         debug_print(f"Chat log length: {len(chat_log)} chars")
-        debug_print("="*80)
+        debug_print("=" * 80)
 
         if not chat_log or not isinstance(chat_log, str):
             raise ValueError("Invalid chat_log: must be non-empty string")
@@ -290,9 +317,9 @@ class AriadneClew:
         recap = self._format_for_demo(analysis)
         debug_print("✓ Formatting complete")
 
-        debug_print("="*80)
+        debug_print("=" * 80)
         debug_print("✅ TRANSCRIPT PROCESSING COMPLETE")
-        debug_print("="*80)
+        debug_print("=" * 80)
 
         return recap
 
@@ -350,27 +377,33 @@ Chat transcript:
                 "agentcore_runtime": "BedrockAgentCoreApp",
                 "strands_agent": True,
                 "code_snippets_found": len(analysis.get("code_snippets", [])),
-                "insights_extracted": len(analysis.get("aha_moments", []))
-            }
+                "insights_extracted": len(analysis.get("aha_moments", [])),
+            },
         }
+
 
 # -----------------------------------------------------------------------------
 # AgentCore entrypoint
 # -----------------------------------------------------------------------------
+
 
 @app.entrypoint
 def invoke(payload):
     """
     AWS AgentCore entrypoint for Ariadne Clew.
     """
-    debug_print("="*80)
+    debug_print("=" * 80)
     debug_print("🎯 AGENTCORE ENTRYPOINT INVOKED")
     debug_print(f"  Payload type: {type(payload)}")
-    debug_print(f"  Payload keys: {list(payload.keys()) if isinstance(payload, dict) else 'NOT A DICT'}")
-    debug_print("="*80)
+    debug_print(
+        f"  Payload keys: {list(payload.keys()) if isinstance(payload, dict) else 'NOT A DICT'}"
+    )
+    debug_print("=" * 80)
 
     try:
-        chat_log = payload.get("chat_log") or payload.get("prompt") or payload.get("message")
+        chat_log = (
+            payload.get("chat_log") or payload.get("prompt") or payload.get("message")
+        )
         session_id = payload.get("session_id", "agentcore-session")
 
         if not chat_log:
@@ -381,19 +414,20 @@ def invoke(payload):
         ariadne = AriadneClew(session_id=session_id)
         result = ariadne.process_transcript_sync(chat_log)
 
-        debug_print("="*80)
+        debug_print("=" * 80)
         debug_print("✅ AGENTCORE ENTRYPOINT COMPLETE")
-        debug_print("="*80)
+        debug_print("=" * 80)
 
         return {"status": "success", "result": result}
 
     except Exception as e:
         error_msg = f"AgentCore entrypoint failed: {str(e)}"
-        debug_print("="*80)
+        debug_print("=" * 80)
         debug_print(f"❌ ENTRYPOINT ERROR: {error_msg}")
-        debug_print("="*80)
+        debug_print("=" * 80)
         logger.error(error_msg, exc_info=True)
         return {"status": "failed", "error": error_msg}
+
 
 # For local bare run (AgentCore will normally handle the service lifecycle)
 if __name__ == "__main__":

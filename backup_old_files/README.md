@@ -1,11 +1,12 @@
 # Ariadne Clew (AC)
+
 **Reasoning Preservation for LLM-Native Builders**
 
 🧶 **Don't commit without context.**
 
-You build fast. You iterate messy. You lose track of *why* you made choices.
+You build fast. You iterate messy. You lose track of _why_ you made choices.
 
-Ariadne Clew is an **AWS AgentCore-powered reasoning agent** that turns your chaotic chat transcripts into structured clarity, preserving the *aha moments*, *design tradeoffs*, and *validated code* that disappear when you move too fast for version control.
+Ariadne Clew is an **AWS AgentCore-powered reasoning agent** that turns your chaotic chat transcripts into structured clarity, preserving the _aha moments_, _design tradeoffs_, and _validated code_ that disappear when you move too fast for version control.
 
 Built by an indie operator, for indie operators who know the pain of losing context in late-night builds.
 
@@ -13,11 +14,11 @@ Built by an indie operator, for indie operators who know the pain of losing cont
 
 ## 🧶 Why Ariadne Clew?
 
-In Greek mythology, Ariadne gave Theseus a *clew* - a ball of thread - so he could navigate the labyrinth and make it out alive.
+In Greek mythology, Ariadne gave Theseus a _clew_ - a ball of thread - so he could navigate the labyrinth and make it out alive.
 
 Ariadne Clew plays the same role for builders today: it captures threads of thought, decisions, and insights so you don't lose your way in the maze of iteration.
 
-Where traditional version control tracks *what* changed, Ariadne Clew preserves the *why*, guiding you back to clarity when the path gets tangled.
+Where traditional version control tracks _what_ changed, Ariadne Clew preserves the _why_, guiding you back to clarity when the path gets tangled.
 
 ### 🧩 The Real Problem
 
@@ -32,7 +33,7 @@ Builders are shipping faster than ever, but the **design decisions** and **reaso
 - Code snippets multiply across tools with no clear "final version"
 - Teammates (or future you) can't trace why anything was built
 
-*This isn't a version control problem. This is a reasoning preservation problem.*
+_This isn't a version control problem. This is a reasoning preservation problem._
 
 ---
 
@@ -41,6 +42,7 @@ Builders are shipping faster than ever, but the **design decisions** and **reaso
 Ariadne Clew acts as your **autonomous reasoning agent** - silently watching your messy builder conversations and extracting structured clarity.
 
 It ingests raw session logs and produces a **structured recap** with:
+
 - 💡 **Aha moments** - preserved discoveries and clarifications
 - 🧩 **MVP changes** - tradeoffs, pivots, scope edits
 - 🌀 **Scope creep** - hallucinated ambition, caught in the act
@@ -51,11 +53,12 @@ It ingests raw session logs and produces a **structured recap** with:
 **For solo devs and indie builders**, Ariadne Clew is like a ghost cofounder - silently watching and capturing your product reasoning so you can focus on building, not backtracking. Every design choice, aha moment, or potential pitfall is preserved to keep your momentum and confidence high.
 
 ### How It Works:
+
 1. **Upload your chat transcript** (.txt, .json from any LLM)
 2. **Agent classifies & validates** using AWS AgentCore + Bedrock
 3. **Receive structured recap** - human-readable summary you can actually use
 
-*Model-agnostic. Works with ChatGPT, Claude, DeepSeek, whatever you use.*
+_Model-agnostic. Works with ChatGPT, Claude, DeepSeek, whatever you use._
 
 ---
 
@@ -64,7 +67,9 @@ It ingests raw session logs and produces a **structured recap** with:
 Ariadne Clew isn't just an API wrapper - it's a **reasoning agent** that demonstrates autonomous decision-making with AWS's latest agent infrastructure:
 
 ### 🧠 **AgentCore Code Interpreter Integration**
+
 The AgentCore Code Interpreter allows AI agents to write, execute, and debug code securely in sandbox environments, enabling AC to:
+
 - **Validate code snippets** in isolated sandboxes
 - **Execute and test** candidate solutions
 - **Generate validation metadata** (works/broken/partial)
@@ -73,13 +78,15 @@ The AgentCore Code Interpreter allows AI agents to write, execute, and debug cod
 **For the hackathon MVP**, AgentCore Code Interpreter validates snippets found in chats - showing developers what actually runs and surfacing conflicts with their declared "finals."
 
 ### 🧶 **AgentCore Memory Integration**
+
 - **Persists reasoning context** across sessions
-- **Recalls previous decisions**: *"Last session, you validated Snippet 3 as final"*
+- **Recalls previous decisions**: _"Last session, you validated Snippet 3 as final"_
 - **Maintains session continuity** without heavyweight project management
 
 **AgentCore Memory is used lightly** to persist chosen baselines across sessions, laying the groundwork for long-term project recaps.
 
 ### 🤯 **Autonomous Decision-Making**
+
 - **Classifies** plain text vs code without human input
 - **Resolves conflicts** when multiple "final" versions exist
 - **Flags quality issues** in reasoning or code structure
@@ -96,18 +103,21 @@ The AgentCore Code Interpreter allows AI agents to write, execute, and debug cod
 Ariadne Clew is built for indie operators, casual architects, and advanced civilian power users. These are people who lose context when iterating fast - not those who live inside version control.
 
 ### 🏠 **Indie Operators**
-*Pain*: Moving too fast for version control, not disciplined enough for Notion
-*Value*: AC gives you a recap of "what just happened" without adding overhead
+
+_Pain_: Moving too fast for version control, not disciplined enough for Notion
+_Value_: AC gives you a recap of "what just happened" without adding overhead
 
 ### 🚀 **Hackathon Builders**
-*Pain*: Chaotic sprinting, dozens of snippets, judges who'll never read your whole repo
-*Value*: Structured recap = credibility and clarity for demo day
+
+_Pain_: Chaotic sprinting, dozens of snippets, judges who'll never read your whole repo
+_Value_: Structured recap = credibility and clarity for demo day
 
 ### 🧠 **Advanced Civilian Power Users**
-*Pain*: Daily LLM users who lose track of *why they made choices*
-*Value*: AC is your "ghost cofounder" - organizes messy chats into reusable artifacts
 
-*All these big tools are fancy, but are they really needed? Can't someone without formal AI training take a different path?*
+_Pain_: Daily LLM users who lose track of _why they made choices_
+_Value_: AC is your "ghost cofounder" - organizes messy chats into reusable artifacts
+
+_All these big tools are fancy, but are they really needed? Can't someone without formal AI training take a different path?_
 
 **I believe so. This is that path.**
 
@@ -116,18 +126,21 @@ Ariadne Clew is built for indie operators, casual architects, and advanced civil
 ## 💡 Why This Matters: Measurable Impact
 
 ### **Problem Scale**
+
 - 73% of developers use AI coding tools daily (Stack Overflow 2024)
 - Average session: 50+ messages, 12+ code iterations
 - **0% of sessions preserve structured reasoning for reuse**
 
 ### **Real-World Value**
+
 - **Time Recovery**: Eliminate "what was I thinking?" moments
-- **Knowledge Transfer**: Teammates understand *why*, not just *what*
+- **Knowledge Transfer**: Teammates understand _why_, not just _what_
 - **Decision Audit**: Trace any choice back to its reasoning thread
 - **Context Continuity**: Pick up where you left off, weeks later
 
 ### **Competitive Differentiation**
-Existing tools remember *conversations*. AC preserves *reasoning*.
+
+Existing tools remember _conversations_. AC preserves _reasoning_.
 That's the difference between a chat log and a decision artifact.
 
 ---
@@ -149,17 +162,20 @@ That's the difference between a chat log and a decision artifact.
 ```
 
 ### Core Components:
+
 - **Bedrock Claude/Nova** for content classification and reasoning extraction
 - **AgentCore Code Interpreter** for secure code validation in sandboxed environments
 - **AgentCore Memory** for cross-session reasoning persistence
 - **S3 + Lambda** for scalable document processing
 - **API Gateway** for clean integration points
 
-*Built for production from day one. No shortcuts, no technical debt.*
+_Built for production from day one. No shortcuts, no technical debt._
 
 ### MVP Scope Lock
+
 To ensure focus and reproducibility, MVP scope is frozen in [MVP_ROADMAP.md](./MVP_ROADMAP.md).
 Inspect it directly:
+
 ```bash
 cat MVP_ROADMAP.md
 ```
@@ -174,30 +190,35 @@ Full memory features (multi-session reasoning threads, advanced recall) are post
 Because moving fast shouldn't mean moving recklessly:
 
 ### **Input Filtering**
+
 - Character limits prevent token overflow
 - PII scrubbing (emails, phones, SSNs)
 - Deny-list filtering for harmful content
 - Schema validation on all uploads
 
 ### **Output Validation**
+
 - Bedrock Guardrails with sub-second latency for harmful content detection
 - Strict JSON schema enforcement - no hallucinated prose
 - Confidence thresholds for factual grounding
 - Empty fields over speculation
 
 ### **Model Selection Process**
+
 Evaluated Claude, Titan, and Nova on transcript classification:
+
 - **Claude Sonnet**: Best reasoning extraction, consistent JSON output
 - **Cost optimization**: Predictable token usage, hackathon-safe
 - **Reliability**: Handles edge cases without hallucination
 
-*Every decision documented. Every guardrail tested.*
+_Every decision documented. Every guardrail tested._
 
 ---
 
 ## 📊 MVP Demo Flow: End-to-End Agentic Workflow
 
 ### **1. Upload Transcript**
+
 ```bash
 # Any LLM export works
 curl -X POST /upload \
@@ -205,37 +226,45 @@ curl -X POST /upload \
 ```
 
 ### **2. Agent Processing (Autonomous)**
+
 - **Classifier**: Bedrock LLM extracts code vs reasoning
 - **Validator**: AgentCore Code Interpreter tests snippets
 - **Reconciler**: Agent resolves conflicts between versions
 - **Memory**: AgentCore stores final decision + rationale
 
 ### **3. Human-Readable Recap**
+
 **MVP Output**: Clean, scannable recap with action items
+
 ```markdown
 ## Session Recap: ac-session-042
 
 ### 🎯 What You Built
+
 **Final Code**: Iterative Fibonacci implementation
 ✅ **Validated**: Runs successfully, O(n) time complexity
 **Why This Version**: Chosen for performance over recursive approach
 
 ### 💡 Key Insights
+
 - Realized recursion would timeout on large inputs
 - Performance matters more than code elegance for this use case
 
 ### 🚫 What Didn't Work
+
 - Recursive implementation: O(2^n) performance issue
 - Initial while-loop approach: Off-by-one errors
 
 ### 📝 Next Session Reminder
+
 Your chosen solution + efficiency reasoning stored for continuity
 ```
 
 **Raw JSON Available**: Via `/api/recap/{session_id}/raw` for integrations
 
 ### **4. Session Continuity**
-Next upload recalls: *"Last session: You chose iterative Fibonacci for performance. Continue?"*
+
+Next upload recalls: _"Last session: You chose iterative Fibonacci for performance. Continue?"_
 
 ---
 
@@ -244,10 +273,11 @@ Next upload recalls: *"Last session: You chose iterative Fibonacci for performan
 Ariadne Clew acts as a **foundational memory primitive** for agent-native infrastructure.
 
 You can use it to:
+
 - 📜 Auto-generate `README.md` content from LLM-driven builds
 - 📊 Train future agents on historical product reasoning
 - 🕵️ Trace decisions back to the prompts that shaped them
-- 🧠 Maintain *semantic continuity* across sessions, collaborators, and tools
+- 🧠 Maintain _semantic continuity_ across sessions, collaborators, and tools
 
 > Think of it as a **source-of-truth layer for product thinking**.
 
@@ -258,11 +288,13 @@ You can use it to:
 The current MVP proves the concept. Future iterations serve the community:
 
 ### **Phase 2: Developer Integration**
+
 - VS Code extension for live session capture
 - GitHub integration for context-rich commits
 - Slack/Discord bots for team reasoning threads
 
 ### **Phase 3: Project Mode & Advanced Analysis**
+
 **Current MVP**: Single recap, flat list of snippets + decisions
 **Future (Paid Tier)**: Smart file/module grouping and project-level insights
 
@@ -275,14 +307,15 @@ The current MVP proves the concept. Future iterations serve the community:
 - **Dependency mapping**: Understanding how reasoning connects across files
 - **Semantic search** across all stored decisions and code contexts
 
-*This transforms AC from "chat cleanup" to "project reasoning intelligence."*
+_This transforms AC from "chat cleanup" to "project reasoning intelligence."_
 
 ### **Phase 4: Community & Collaboration**
+
 - Public reasoning artifact sharing
 - Team workspaces for shared context
 - Integration marketplace for specialized tools
 
-*Built with the indie community, for the indie community.*
+_Built with the indie community, for the indie community._
 
 ---
 
@@ -291,31 +324,36 @@ The current MVP proves the concept. Future iterations serve the community:
 **The big tools chase enterprise. I'm building for builders who actually need this.**
 
 ### **Freemium Approach**
+
 - **One-Shot (Free)**: "Clean up this messy chat for me"
 - **Project Tracking (Paid)**: Multi-session continuity + reasoning evolution
 - **Team Workspaces (Pro)**: Shared context across collaborators
 
 ### **Why This Works**
+
 My audience isn't enterprise procurement teams. It's:
+
 - **Indie operators** who'll pay $10/month to never lose context again
 - **Hackathon builders** who need credible demos fast
 - **Advanced civilians** who live in LLMs but lack structure
 
 ### **Measurable Value Delivered**
+
 - **Time Recovery**: Eliminate "what was I thinking?" debugging sessions
-- **Knowledge Transfer**: New teammates understand *why*, not just *what*
+- **Knowledge Transfer**: New teammates understand _why_, not just _what_
 - **Decision Audit**: Trace any choice back to its reasoning thread
 - **Continuity**: Pick up complex builds weeks later with full context
 
-**Version control tracks *what* changed. Ariadne Clew tracks *why* you changed it.**
+**Version control tracks _what_ changed. Ariadne Clew tracks _why_ you changed it.**
 
-*That's not a feature gap - that's a market gap.*
+_That's not a feature gap - that's a market gap._
 
 ---
 
 ## 🛠️ Technical Implementation Details
 
 ### **File Structure**
+
 ```
 ariadne-clew/
 ├── lambda_classifier.py      # AgentCore entry point
@@ -329,6 +367,7 @@ ariadne-clew/
 ```
 
 ### **Key Features**
+
 - ✅ **Model-agnostic input** (ChatGPT, Claude, DeepSeek exports)
 - ✅ **Secure code execution** via AgentCore Code Interpreter
 - ✅ **Cross-session memory** via AgentCore Memory
@@ -342,6 +381,7 @@ The classification intelligence lives in `prompts/classifier_prompt.md` - a care
 
 ```markdown
 ## Core Classification Framework
+
 - **Aha moments**: Key insights or shifts in understanding
 - **MVP changes**: Edits, pivots, commitments affecting scope
 - **Scope creep**: Evidence of expanding beyond MVP
@@ -351,14 +391,16 @@ The classification intelligence lives in `prompts/classifier_prompt.md` - a care
 ```
 
 **Why This Matters for Agents:**
+
 - **Structured reasoning extraction** from unstructured input
 - **Consistent JSON schema** enforcement across all LLM providers
 - **Anti-hallucination guardrails**: Empty arrays over speculation
 - **Tunable intelligence**: Add new classification fields as needs evolve
 
-*The prompt is the product.* This agent's reasoning capability comes from deliberate prompt architecture, not just API calls.
+_The prompt is the product._ This agent's reasoning capability comes from deliberate prompt architecture, not just API calls.
 
 ### **Testing & QA**
+
 - pytest coverage for all agent components
 - Mocked AgentCore calls for local development
 - Pre-commit hooks for code quality
@@ -375,17 +417,20 @@ Every time you've lost context in a messy chat. Every time you couldn't remember
 That's the problem Ariadne Clew solves.
 
 **Technical Excellence:**
+
 - Real AgentCore integration, not just API calls
 - Autonomous agent behavior with memory persistence
 - Production-ready with comprehensive guardrails
 - Reproducible architecture on AWS infrastructure
 
 **Real-World Impact:**
+
 - Serves underserved but growing builder community
 - Measurable value: time recovery + knowledge transfer
 - Scales with the AI-native development trend
 
 **Differentiated Approach:**
+
 - First reasoning preservation agent for chat-driven workflows
 - Model-agnostic in a vendor-locked world
 - Built by indie operator who lives the problem daily
@@ -400,7 +445,7 @@ From [Beyond the Docket](https://sites.google.com/view/beyondthedocket) (making 
 
 Ariadne Clew continues that mission: **making reasoning visible in the age of AI-assisted building.**
 
-*No formal AI training. No CS degree. Started exploring coding with LLMs in January 2025, first working builds by July.*
+_No formal AI training. No CS degree. Started exploring coding with LLMs in January 2025, first working builds by July._
 **Just a builder who sees patterns and solves problems.**
 
 **Connect:** [lsjcordero@gmail.com] | [ThreadKeeper.io](https://threadkeeper.io) | [The Forum Files](https://theforumfiles.substack.com)
@@ -421,8 +466,8 @@ Ariadne Clew exists to serve builders first. It obsesses over clarity and contin
 
 ---
 
-*Built September 2025 for AWS Agent Hackathon*
-*Hackathon prototype → Production-ready foundation*
+_Built September 2025 for AWS Agent Hackathon_
+_Hackathon prototype → Production-ready foundation_
 
 ## License
 

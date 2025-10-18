@@ -8,6 +8,7 @@ class EnrichedSnippet(BaseModel):
     """
     Represents a validated code snippet with optional diff and validation metadata.
     """
+
     version: int
     snippet_id: str
     content: str
@@ -19,6 +20,7 @@ class Recap(BaseModel):
     """
     Canonical recap model that aligns schema, frontend, and tests.
     """
+
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     final: Optional[EnrichedSnippet] = None
     rejected_versions: List[EnrichedSnippet] = Field(default_factory=list)

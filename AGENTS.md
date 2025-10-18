@@ -5,6 +5,7 @@ This file provides persistent context and conventions for AI agents that work in
 ---
 
 ## 🧵 Core Identity
+
 - **Project**: Ariadne Clew (AC)
 - **Mission**: Preserve reasoning from messy chat-driven developer workflows through autonomous agent operation.
 - **Tagline**: "Don't commit without context."
@@ -13,6 +14,7 @@ This file provides persistent context and conventions for AI agents that work in
 ---
 
 ## 🔑 Key Concepts
+
 - **Autonomous Reasoning**: Agent classifies, extracts, and structures insights without human intervention during processing.
 - **Final Snippet**: Last validated code block, parsed by Python AST and validated against schema rules.
 - **Rejected Versions**: Invalid or abandoned snippets, with reasons logged.
@@ -23,6 +25,7 @@ This file provides persistent context and conventions for AI agents that work in
 ---
 
 ## ⚖️ Guardrails and Safety Rules
+
 - **Execution**: Do not call `exec()`. Use AST parsing for syntax validation only.
 - **Input Size**: Reject inputs above 50,000 characters (MVP limit, configurable).
 - **Deny Terms**: `password`, `api_key`, `rm -rf /`, `BEGIN RSA PRIVATE KEY`.
@@ -35,6 +38,7 @@ This file provides persistent context and conventions for AI agents that work in
 ## 🏗️ File and Module Conventions
 
 ### Core Backend Files
+
 - **agent.py**: AgentCore Runtime integration, main autonomous reasoning pipeline
 - **bridge_server.py**: Flask server connecting frontend to AgentCore CLI
 - **filters.py**: Deny-list, PII scrub, input size guard
@@ -46,11 +50,13 @@ This file provides persistent context and conventions for AI agents that work in
 - **logging_setup.py**: Central logging config
 
 ### Frontend
+
 - **public/index.html**: Minimal pastebox UI with dual output display
 - **public/scripts/**: JavaScript for API communication and DOM manipulation
 - **public/styles/**: CSS for clean, functional layout
 
 ### Configuration & Docs
+
 - **prompts/classifier_prompt.md**: Engineered reasoning extraction prompt
 - **tests/**: Comprehensive pytest coverage (56 tests)
 - **.bedrock_agentcore.yaml**: AgentCore configuration (gitignored)
@@ -60,6 +66,7 @@ This file provides persistent context and conventions for AI agents that work in
 ## 🎨 Output Requirements
 
 ### JSON Recap Fields
+
 - `session_id`: Unique identifier for this processing session
 - `summary`: High-level overview (3-5 sentences)
 - `aha_moments`: List of key insights and discoveries
@@ -72,6 +79,7 @@ This file provides persistent context and conventions for AI agents that work in
 - `quality_flags`: Session assessment (warnings or praise)
 
 ### Human Recap Headings
+
 - 💡 **Key Insights** (aha_moments)
 - 🧩 **Design Decisions** (design_tradeoffs)
 - 📝 **MVP Changes** (mvp_changes)
@@ -80,6 +88,7 @@ This file provides persistent context and conventions for AI agents that work in
 - 📊 **Summary** (high-level overview)
 
 ### Critical Rules
+
 - **Empty over Wrong**: Prefer empty fields to speculation or hallucination.
 - **No Prose in JSON**: JSON output must be pure structured data, not markdown.
 - **Schema Validation**: Every output must pass Pydantic validation with `extra="forbid"`.
@@ -89,6 +98,7 @@ This file provides persistent context and conventions for AI agents that work in
 ## 🤖 Agent Behaviors
 
 ### Processing Pipeline
+
 1. **Input Validation**: Apply filters before classification (PII scrub, deny-list, size check)
 2. **Autonomous Reasoning**: AgentCore Runtime orchestrates Bedrock (Claude) for classification
 3. **Extraction**: Agent identifies aha moments, code snippets, design decisions
@@ -97,16 +107,19 @@ This file provides persistent context and conventions for AI agents that work in
 6. **Storage**: Session recap persisted to local files (`.cache/`)
 
 ### Model Configuration
+
 - **Default Model**: Claude Sonnet 3.5 on Bedrock via AgentCore Runtime
 - **Fallbacks**: Nova or other Bedrock models with schema validation
 - **Invocation**: Via AgentCore CLI (`agentcore invoke`) from bridge server
 
 ### Memory Strategy (MVP)
+
 - **Current**: Local file-based session storage in `.cache/` directory
 - **Access Pattern**: Simple key-value storage by session_id
 - **Post-MVP**: AgentCore Memory API for semantic search and cross-session context
 
 ### Code Validation (MVP)
+
 - **Current**: Python AST parsing for syntax validation
 - **Scope**: Syntax checking without execution
 - **Post-MVP**: AgentCore Code Interpreter for sandbox execution and runtime validation
@@ -116,6 +129,7 @@ This file provides persistent context and conventions for AI agents that work in
 ## 🧪 Testing Expectations
 
 ### Test Coverage Areas
+
 - **Filters** (`tests/test_filters.py`): Size limits, deny terms, PII scrub
 - **Schema** (`tests/test_schema.py`): Pydantic validation, extra field rejection
 - **Code Handler** (`tests/test_code_handler.py`): AST validation, edge cases
@@ -123,6 +137,7 @@ This file provides persistent context and conventions for AI agents that work in
 - **End-to-End** (`tests/test_e2e_recap.py`): Full pipeline, rejection cases
 
 ### Testing Philosophy
+
 - Unit tests for individual components
 - Integration tests for pipeline flow
 - Mocked AgentCore/Bedrock calls for local development
@@ -133,12 +148,14 @@ This file provides persistent context and conventions for AI agents that work in
 ## 📝 Style Notes
 
 ### Code Style
+
 - **Tone**: Indie operator, hackathon builder, clear and functional
 - **Docs**: Function docstrings required for all public functions
 - **Type Hints**: Use type annotations for better IDE support and mypy checking
 - **Schema**: Pydantic models with `extra = "forbid"` for strict validation
 
 ### Documentation Style
+
 - **Clarity over Cleverness**: Explain what the code does and why
 - **Honest Positioning**: Clear about MVP vs post-MVP capabilities
 - **Action-Oriented**: Focus on what builders can do, not what they can't
@@ -148,6 +165,7 @@ This file provides persistent context and conventions for AI agents that work in
 ## 🎯 MVP Scope Awareness
 
 ### What's Implemented (Production-Ready)
+
 - ✅ AgentCore Runtime integration (BedrockAgentCoreApp + Strands)
 - ✅ Autonomous reasoning extraction via Bedrock (Claude Sonnet 3.5)
 - ✅ AST-based code syntax validation
@@ -157,6 +175,7 @@ This file provides persistent context and conventions for AI agents that work in
 - ✅ Dual output format (human + machine readable)
 
 ### What's Architected (Post-MVP Enhancement)
+
 - 🔮 AgentCore Code Interpreter (sandbox execution)
 - 🔮 AgentCore Memory API (semantic search, cross-session context)
 - 🔮 Serverless deployment (S3 → Lambda → API Gateway)
@@ -164,12 +183,14 @@ This file provides persistent context and conventions for AI agents that work in
 - 🔮 Team collaboration features
 
 ### Key Principle
+
 **Strategic MVP scoping demonstrates engineering maturity.**
 Focus on autonomous reasoning (the hard problem) while architecting for tool integration (the enhancements).
 
 ---
 
 ## 📍 Placement
+
 - Place **AGENTS.md** at the repo root so every tool and human can find it.
 - Place **classifier_prompt.md** in `/prompts/`. This is the agent's "brain."
 - Reference AgentCore configuration from `.bedrock_agentcore.yaml` (gitignored, per-developer).
@@ -179,6 +200,7 @@ Focus on autonomous reasoning (the hard problem) while architecting for tool int
 ## 🚀 Agent Invocation Examples
 
 ### Via Bridge Server (Normal Flow)
+
 ```bash
 # Start bridge server
 python bridge_server.py
@@ -188,6 +210,7 @@ python bridge_server.py
 ```
 
 ### Direct AgentCore CLI (Testing)
+
 ```bash
 # Test agent directly
 agentcore invoke '{"prompt":"User: test\nAssistant: response"}' --session-id test-123
@@ -197,6 +220,7 @@ agentcore invoke '{"prompt":"..."}' --session-id debug --verbose
 ```
 
 ### In Code (agent.py)
+
 ```python
 from bedrock_agentcore import BedrockAgentCoreApp
 from strands import Agent
@@ -227,5 +251,5 @@ When working on this codebase:
 
 ---
 
-*This file is the source of truth for technical implementation details and conventions.*
-*Last Updated: October 14, 2025*
+_This file is the source of truth for technical implementation details and conventions._
+_Last Updated: October 14, 2025_

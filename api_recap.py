@@ -180,7 +180,9 @@ def process_recap_request(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
 
     except ValidationError as ve:
         logger.warning(f"Validation error: {ve}")
-        return {"error": "Invalid request format or missing fields."}, HttpStatus.BAD_REQUEST
+        return {
+            "error": "Invalid request format or missing fields."
+        }, HttpStatus.BAD_REQUEST
     except ValueError as ve:
         logger.warning(f"Value error: {ve}")
         return {"error": str(ve)}, HttpStatus.BAD_REQUEST
@@ -196,7 +198,10 @@ def process_recap_request(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
 def generate_recap() -> Union[Response, Tuple[Response, int]]:
     """Classify chat content and produce a structured recap."""
     if request.content_type != ContentType.JSON:
-        return jsonify({"error": "Content-Type must be application/json"}), HttpStatus.UNSUPPORTED_MEDIA_TYPE
+        return (
+            jsonify({"error": "Content-Type must be application/json"}),
+            HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+        )
 
     data: Dict[str, Any] = request.get_json(force=True)
     response, status = process_recap_request(data)

@@ -1,4 +1,3 @@
-import pytest
 from backend.diffcheck import diff_code_blocks
 from backend.schema import Recap
 
@@ -6,7 +5,11 @@ from backend.schema import Recap
 def test_diff_code_blocks_propagates_metadata():
     blocks = [
         {"type": "code", "content": "print('ok')", "validation": {"status": "valid"}},
-        {"type": "code", "content": "print('bad')", "validation": {"status": "invalid"}},
+        {
+            "type": "code",
+            "content": "print('bad')",
+            "validation": {"status": "invalid"},
+        },
     ]
 
     recap_dict = diff_code_blocks(blocks)
